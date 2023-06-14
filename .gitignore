@@ -32,3 +32,6 @@ creds.js
  
 # Mac/OSX
 .DS_Store
+
+# Application Custom Files
+directoryoutline.txt
