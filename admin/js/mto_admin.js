@@ -1,4 +1,4 @@
-jQuery(document).ready(function($) {
+jQuery(document).ready(function ($) {
     if ($('body').hasClass('upload-php')) {
         var treeContainer = $('<div id="mto-admin-tree"></div>');
 
@@ -6,8 +6,8 @@ jQuery(document).ready(function($) {
 
         // Initialize the jstree
         $('#mto-admin-tree').jstree({
-            'core' : {
-                'data' : mtoData.nodes
+            'core': {
+                'data': mtoData.categories_json
             }
         });
     }

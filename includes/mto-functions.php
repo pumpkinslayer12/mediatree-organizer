@@ -37,7 +37,7 @@ function mto_register_custom_taxonomy()
         'show_ui' => true,
         'show_admin_column' => true,
         'query_var' => true,
-        'rewrite' => array('slug' => 'category'),
+        'rewrite' => array('slug' => 'media-category'),
         'show_in_rest' => true,
     );
 

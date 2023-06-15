@@ -1,28 +1,28 @@
 /* Custom folder icon */
 .folder-icon.jstree-themeicon {
-    background-image: url('folder.png');
+    background-image: url('../../assets/folder.png');
     background-size: contain;
 }
 
 /* Custom file icon */
 .file-icon.jstree-themeicon {
-    background-image: url('file.png');
+    background-image: url('../../assets/file.png');
     background-size: contain;
 }
 
 .image-icon.jstree-themeicon {
-    background-image: url('image.png');
+    background-image: url('../../assets/image.png');
     background-size: contain;
 }
 
 .pdf-icon.jstree-themeicon {
-    background-image: url('pdf.png');
+    background-image: url('../../assets/pdf.png');
     background-size: contain;
 }
 
 
 .video-icon.jstree-themeicon {
-    background-image: url('video.png');
+    background-image: url('../../video.png');
     background-size: contain;
 }
 
