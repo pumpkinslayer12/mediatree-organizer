@@ -1,0 +1,18 @@
+#mto-admin-tree {
+    width: 300px;
+    overflow: auto;
+    background: #fff;
+}
+
+#wpbody {
+    display: flex;
+}
+
+#wpbody-content {
+    flex-grow: 1;
+}
+
+body.wp-admin.upload-php #wpbody-content .wp-header-end,
+body.wp-admin.upload-php #wpfooter {
+    display: none;
+}

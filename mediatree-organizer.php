@@ -21,3 +21,27 @@
  *
  * @package MediaTree_Organizer
  */
+
+// If this file is called directly, abort.
+if (!defined('WPINC')) {
+    die;
+}
+
+/**
+ * Define Constants for Plugin path and Plugin URL
+ */
+define('MTO_PLUGIN_PATH', plugin_dir_path(__FILE__));
+define('MTO_PLUGIN_URL', plugin_dir_url(__FILE__));
+
+/**
+ * The code that runs during plugin activation.
+ * This action is documented in includes/mto-functions.php
+ */
+require_once MTO_PLUGIN_PATH . 'includes/mto-functions.php';
+
+/**
+ * The core plugin class that is used to define internationalization,
+ * admin-specific hooks, and public-facing site hooks.
+ */
+require MTO_PLUGIN_PATH . 'admin/mto-admin.php';
+require MTO_PLUGIN_PATH . 'public/mto-public.php';

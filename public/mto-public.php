@@ -8,3 +8,7 @@
  * @package MediaTree_Organizer
  * @subpackage MediaTree_Organizer/public
  */
+// If this file is called directly, abort.
+if (!defined('WPINC')) {
+    die;
+}

@@ -9,6 +9,11 @@
  * @subpackage MediaTree_Organizer/includes
  */
 
+// If this file is called directly, abort.
+if (!defined('WPINC')) {
+    die;
+}
+
 function mto_register_custom_taxonomy()
 {
     $labels = array(
@@ -33,6 +38,7 @@ function mto_register_custom_taxonomy()
         'show_admin_column' => true,
         'query_var' => true,
         'rewrite' => array('slug' => 'category'),
+        'show_in_rest' => true,
     );
 
     register_taxonomy('mto_category', array('attachment'), $args);
