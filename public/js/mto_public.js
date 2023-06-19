@@ -70,7 +70,7 @@ jQuery(function ($) {
 
     // Event handler for when a key is pressed in the search input field.
     $(document).ready(function () {
-        $(".search-input").keyup(function () {
+        $(".mediaviewer-search-input").keyup(function () {
 
             // Get the current search string.
             var searchString = $(this).val();

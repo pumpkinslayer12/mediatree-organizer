@@ -46,7 +46,7 @@ function mto_get_categories_for_folders($parent = 0)
     $args = array(
         'taxonomy' => 'mto_category',
         'parent' => $parent,
-        'hide_empty' => false, // Change to 'true' if you want to hide empty categories
+        'hide_empty' => false,
     );
 
     $terms = get_terms($args);

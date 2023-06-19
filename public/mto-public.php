@@ -13,45 +13,6 @@ if (!defined('WPINC')) {
     die;
 }
 
-// Recursive function to fetch and build an array of categories and subcategories
-
-/*
-function mto_build_directory_structure($parent = 0)
-{
-    $args = array(
-        'taxonomy' => 'mto_category',
-        'parent' => $parent,
-        'hide_empty' => false, // Change to 'true' if you want to hide empty categories
-    );
-
-    $terms = get_terms($args);
-    $categories = [];
-
-    // Check if any term exists
-    if (!empty($terms) && is_array($terms)) {
-        foreach ($terms as $term) {
-            $category = [
-                'id' => $term->term_id,
-                'text' => $term->name,
-                'children' => [],
-                'a_attr' => [
-                    'href' => get_term_link($term->term_id)
-                ]
-            ];
-
-            // If the term has children, get them
-            if (get_term_children($term->term_id, 'mto_category')) {
-                $category['children'] = mto_build_directory_structure($term->term_id);
-            }
-
-            $categories[] = $category;
-        }
-    }
-
-    return $categories;
-}
-*/
-
 function mto_build_directory_structure($parent = 0)
 {
     $args = array(
@@ -71,7 +32,8 @@ function mto_build_directory_structure($parent = 0)
                 'text' => $term->name,
                 'type' => 'default',
                 // Added a 'type' property to specify this is a folder
-                'icon' => 'folder-icon', // Assign a folder icon class to the folder
+                'icon' => 'folder-icon',
+                // Assign a folder icon class to the folder
                 'children' => [],
                 'a_attr' => [
                     'href' => get_term_link($term->term_id)
@@ -158,9 +120,10 @@ function mto_display_directory_shortcode()
         )
     );
 
-    $output = '<div id="mto-admin-tree"></div>';
+    $searchForm = '<div><input id="search-input" class="mediaviewer-search-input" placeholder="File search"/> </div>';
 
-    return $output;
+    return $searchForm . '<div id="mto-admin-tree"></div>';
+    ;
 }
 
 add_shortcode('mto_display_folders', 'mto_display_directory_shortcode');
