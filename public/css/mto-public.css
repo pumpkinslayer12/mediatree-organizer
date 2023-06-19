@@ -31,3 +31,8 @@
     font-size: 16px;
     padding: 15px
 }
+
+#mto-admin-tree .jstree-container-ul {
+    background-color: #f7f7f7;
+    padding: 15px;
+}
