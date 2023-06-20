@@ -16,3 +16,37 @@ body.wp-admin.upload-php #wpbody-content .wp-header-end,
 body.wp-admin.upload-php #wpfooter {
     display: none;
 }
+
+.mto-jstree-search {
+    font-size: 12px;
+    padding: 8px;
+    margin-bottom: 10px;
+}
+
+#mto-admin-tree .jstree-container-ul {
+    background-color: #f7f7f7;
+    padding: 15px;
+}
+
+.folder-icon.jstree-themeicon {
+    background-image: url('../../assets/folder.png');
+    background-size: contain;
+}
+
+.mto-tree-wrapper {
+    padding: 25px;
+
+}
+
+.mto-tree-wrapper {
+    position: sticky;
+    top: 35px;
+    max-height: 45vh;
+    /* Adjust this value as needed */
+}
+
+#wpbody {
+    display: flex;
+    height: 100%;
+    /* Or adjust as needed */
+}

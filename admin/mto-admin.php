@@ -13,7 +13,7 @@ if (!defined('WPINC')) {
     die;
 }
 
-function mto_enqueue_admin_scripts($hook)
+function mto_setup_admin_media($hook)
 {
 
     if ('upload.php' !== $hook) {
@@ -37,7 +37,7 @@ function mto_enqueue_admin_scripts($hook)
         )
     );
 }
-add_action('admin_enqueue_scripts', 'mto_enqueue_admin_scripts');
+add_action('admin_enqueue_scripts', 'mto_setup_admin_media');
 
 
 // Recursive function to fetch and build an array of categories and subcategories to build admin folders

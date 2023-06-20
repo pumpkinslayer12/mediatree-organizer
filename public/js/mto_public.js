@@ -21,7 +21,7 @@ jQuery(function ($) {
             'dblclick_toggle': false, // Prevent nodes from toggling open/close on double click.
             'themes': {
                 'dots': false, // Remove connecting dots between nodes.
-                'stripes': false, // Add alternating stripes to the treeview for readability.
+                'stripes': false // Add alternating stripes to the treeview for readability.
             },
             'data': tree_data // Set the tree data to be the parsed directory tree.
         },
@@ -30,9 +30,6 @@ jQuery(function ($) {
         "types": {
             "default": {
                 "icon": "folder-icon" // Use a custom icon for folders.
-            },
-            "file": {
-                "icon": "file-icon" // Use a custom icon for files.
             }
         },
 
