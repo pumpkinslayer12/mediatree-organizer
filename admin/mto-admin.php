@@ -34,8 +34,10 @@ function mto_setup_admin_media($hook)
         'mtoData',
         array(
             'categories_json' => $categories,
+            'ajax_url' => admin_url('admin-ajax.php')
         )
     );
+
 }
 add_action('admin_enqueue_scripts', 'mto_setup_admin_media');
 
@@ -59,9 +61,7 @@ function mto_get_categories_for_folders($parent = 0)
                 'id' => $term->term_id,
                 'text' => $term->name,
                 'children' => [],
-                'a_attr' => [
-                    'href' => get_term_link($term->term_id)
-                ]
+
             ];
 
             // If the term has children, get them
@@ -75,3 +75,81 @@ function mto_get_categories_for_folders($parent = 0)
 
     return $categories;
 }
+
+function mto_fetch_media_items()
+{
+    // Check if the category ID is set and valid.
+    if (isset($_GET['categoryId']) && is_numeric($_GET['categoryId'])) {
+        $categoryId = intval($_GET['categoryId']);
+
+        // Use WP_Query to fetch the media items associated with the category.
+        $query = new WP_Query(
+            array(
+                'post_type' => 'attachment',
+                'tax_query' => array(
+                    array(
+                        'taxonomy' => 'mto_category',
+                        'field' => 'term_id',
+                        'terms' => $categoryId,
+                    ),
+                ),
+            )
+        );
+
+        // Check if the query has posts.
+        if ($query->have_posts()) {
+            $posts = array();
+
+            // Loop through the posts and add them to the array.
+            while ($query->have_posts()) {
+                $query->the_post();
+                $posts[] = get_post();
+            }
+
+            // Return the posts as a JSON response.
+            wp_send_json_success($posts);
+        } else {
+            // If no posts were found, return an error message.
+            wp_send_json_error('No media items found for this category.');
+        }
+    } else {
+        // If the category ID is not set or invalid, return an error message.
+        wp_send_json_error('Invalid category ID.');
+    }
+
+    // Always die in functions echoing AJAX content.
+    die();
+}
+add_action('wp_ajax_mto_fetch_media_items', 'mto_fetch_media_items');
+
+function mto_register_custom_taxonomy()
+{
+    $labels = array(
+        'name' => _x('Categories', 'taxonomy general name', 'mediatree-organizer'),
+        'singular_name' => _x('Category', 'taxonomy singular name', 'mediatree-organizer'),
+        'search_items' => __('Search Categories', 'mediatree-organizer'),
+        'all_items' => __('All Categories', 'mediatree-organizer'),
+        'parent_item' => __('Parent Category', 'mediatree-organizer'),
+        'parent_item_colon' => __('Parent Category:', 'mediatree-organizer'),
+        'edit_item' => __('Edit Category', 'mediatree-organizer'),
+        'update_item' => __('Update Category', 'mediatree-organizer'),
+        'add_new_item' => __('Add New Category', 'mediatree-organizer'),
+        'new_item_name' => __('New Category Name', 'mediatree-organizer'),
+        'menu_name' => __('Category', 'mediatree-organizer'),
+    );
+
+    $args = array(
+        'hierarchical' => true,
+        // make it hierarchical so it behaves like categories
+        'labels' => $labels,
+        'show_ui' => true,
+        'show_admin_column' => true,
+        'query_var' => true,
+        'rewrite' => array('slug' => 'media-category'),
+        'show_in_rest' => true,
+    );
+
+    register_taxonomy('mto_category', array('attachment'), $args);
+}
+
+add_action('init', 'mto_register_custom_taxonomy');

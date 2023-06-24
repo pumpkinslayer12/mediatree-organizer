@@ -13,7 +13,7 @@
 if (!defined('WPINC')) {
     die;
 }
-
+/*
 function mto_register_custom_taxonomy()
 {
     $labels = array(
@@ -45,3 +45,4 @@ function mto_register_custom_taxonomy()
 }
 
 add_action('init', 'mto_register_custom_taxonomy');
+*/
