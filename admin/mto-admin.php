@@ -78,36 +78,29 @@ function mto_get_categories_for_folders($parent = 0)
 
 function mto_fetch_media_items()
 {
+
     // Check if the category ID is set and valid.
     if (isset($_GET['categoryId']) && is_numeric($_GET['categoryId'])) {
         $categoryId = intval($_GET['categoryId']);
 
         // Use WP_Query to fetch the media items associated with the category.
-        $query = new WP_Query(
-            array(
-                'post_type' => 'attachment',
-                'tax_query' => array(
-                    array(
-                        'taxonomy' => 'mto_category',
-                        'field' => 'term_id',
-                        'terms' => $categoryId,
-                    ),
-                ),
-            )
-        );
+        $attachments = get_posts([
+            'post_type' => 'attachment',
+            'tax_query' => [
+                [
+                    'taxonomy' => 'mto_category',
+                    'field' => 'term_id',
+                    'terms' => $categoryId,
+                    'include_children' => false // Exclude attachments from child terms
+                ],
+            ],
+            'numberposts' => -1, // Get all attachments
+        ]);
 
         // Check if the query has posts.
-        if ($query->have_posts()) {
-            $posts = array();
-
-            // Loop through the posts and add them to the array.
-            while ($query->have_posts()) {
-                $query->the_post();
-                $posts[] = get_post();
-            }
-
+        if (count($attachments) > 0) {
             // Return the posts as a JSON response.
-            wp_send_json_success($posts);
+            wp_send_json_success($attachments);
         } else {
             // If no posts were found, return an error message.
             wp_send_json_error('No media items found for this category.');
