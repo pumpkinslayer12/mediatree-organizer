@@ -20,7 +20,7 @@ jQuery(document).ready(function ($) {
         $('#wpbody').prepend(tree_wrapper);
 
         // Initialize the jsTree instance.
-        $('#' + tree_anchor_id).jstree({
+        const tree = $('#' + tree_anchor_id).jstree({
             'core': {
                 'dblclick_toggle': false,
                 'themes': {
@@ -43,6 +43,15 @@ jQuery(document).ready(function ($) {
                 "show_only_matches": true
             }
         });
+
+        // Read the node ID from the URL.
+        const urlParams = new URLSearchParams(window.location.search);
+        const nodeId = urlParams.get('nodeId');
+
+        // When the tree is ready, select the node.
+        tree.on('ready.jstree', function () {
+            tree.jstree('select_node', nodeId);
+        });
     }
 
     function setupEventHandlers() {
@@ -53,27 +62,11 @@ jQuery(document).ready(function ($) {
         $('#' + tree_anchor_id).on('activate_node.jstree', function (e, data) {
             const nodeId = data.node.id; // Get the category ID associated with the clicked node.
 
-            console.log('Node ID:', nodeId); // Log the node ID to the console.
+            const nodeSlug = data.node.original.slug; // Get the category slug associated with the clicked node.
 
-            // Make an AJAX request to the server to fetch the media items associated with this category.
-            $.ajax({
-                url: mtoData.ajax_url, // Replace with your server endpoint.
-                type: 'GET',
-                data: {
-                    action: 'mto_fetch_media_items',
-                    categoryId: nodeId
-                },
-                success: function (response) {
-                    console.log('Media items:', response); // Log the response to the console.
+            // Redirect to a new URL with the category slug as a parameter.
+            window.location.href = 'upload.php?taxonomy=mto_category&term=' + nodeSlug + '&nodeId=' + nodeId;
 
-                    // Here you can process the response and update your UI accordingly.
-                },
-                error: function (error) {
-                    console.error('Error fetching media items:', error);
-                }
-            });
-            // Toggle the open/closed state of the clicked node.
-            $('#' + tree_anchor_id).jstree('toggle_node', data.node);
         });
 
         // Event handler for when a key is pressed in the search input field.
@@ -85,4 +78,6 @@ jQuery(document).ready(function ($) {
             $('#' + tree_anchor_id).jstree('search', searchString);
         });
     }
+
+
 });
