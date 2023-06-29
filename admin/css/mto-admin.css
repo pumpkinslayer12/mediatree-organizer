@@ -1,9 +1,3 @@
-#mto-admin-tree {
-    width: 300px;
-    overflow: auto;
-    background: #fff;
-}
-
 #wpbody {
     display: flex;
 }
@@ -23,9 +17,9 @@ body.wp-admin.upload-php #wpfooter {
     margin-bottom: 10px;
 }
 
-#mto-admin-tree .jstree-container-ul {
+#mto-admin-tree {
     background-color: #f7f7f7;
-    padding: 15px;
+    padding: 0;
 }
 
 .folder-icon.jstree-themeicon {
@@ -33,20 +27,45 @@ body.wp-admin.upload-php #wpfooter {
     background-size: contain;
 }
 
-.mto-tree-wrapper {
-    padding: 25px;
-
-}
-
-.mto-tree-wrapper {
-    position: sticky;
-    top: 35px;
-    max-height: 45vh;
-    /* Adjust this value as needed */
-}
 
 #wpbody {
     display: flex;
     height: 100%;
     /* Or adjust as needed */
+}
+
+.resizable-wrapper {
+
+    background-color: #fff;
+    box-sizing: border-box;
+    min-width: 250px;
+    margin-right: 10px;
+
+}
+
+/* Your tree wrapper */
+.mto-tree-wrapper {
+    position: sticky;
+    top: 50px;
+    padding: 10px;
+    margin: 15px;
+    overflow: hidden;
+}
+
+
+/* The Resizable handler */
+
+.resizable-wrapper .ui-resizable-e {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 15px;
+    height: 100%;
+    cursor: ew-resize;
+    background: grey;
+}
+
+.vakata-context,
+.vakata-context ul {
+    z-index: 99;
 }
