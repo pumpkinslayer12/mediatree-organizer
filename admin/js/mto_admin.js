@@ -5,7 +5,6 @@ jQuery(document).ready(function ($) {
     initializeTree();
     setupEventHandlers();
 
-
     function initializeTree() {
         const tree_data = mtoData.categories_json;
         const tree_anchor_id = "mto-admin-tree";
