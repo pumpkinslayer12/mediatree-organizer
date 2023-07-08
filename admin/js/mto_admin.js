@@ -2,27 +2,34 @@ jQuery(document).ready(function ($) {
     // Check if the body has the 'upload-php' class
     if (!$('body').hasClass('upload-php')) return;
 
-    initializeTree();
-    setupEventHandlers();
+    let treeAnchorID = "mto-admin-tree";
+    let searchClass = 'mto-jstree-search';
+    let treeFeature = setupTreeFeature(mtoData.categories_json, treeAnchorID, searchClass);
 
-    function initializeTree() {
-        const tree_data = mtoData.categories_json;
-        const tree_anchor_id = "mto-admin-tree";
-        const search_field_class = 'mto-jstree-search ';
+    let urlParams = new URLSearchParams(window.location.search);
+    let lastVisit = urlParams.get('nodeId');
 
-        // Create the tree wrapper and container
-        const tree_wrapper = $('<div class="mto-tree-wrapper"></div>');
-        const tree_container = $('<div id="' + tree_anchor_id + '"></div>');
-        const search_field = $('<div class="mto-jstree-search-wrapper"> <input id="search-input" class="' + search_field_class + '" placeholder="Folder search"/> </div>');
+    let baseTree = $(treeFeature).find("#" + treeAnchorID);
+    setupTreeNodeSelectSubmission(baseTree);
+    selectLastVisit(baseTree, lastVisit);
+    setupResizeFeature($('#wpbody'), treeFeature);
 
-        tree_wrapper.prepend(search_field, tree_container);
-        const resizable_wrapper = $('<div class="resizable-wrapper"></div>');
+    setupDragAndDrop($('#the-list tr'), baseTree);
 
-        resizable_wrapper.append(tree_wrapper);
-        $('#wpbody').prepend(resizable_wrapper);
+    function setupTreeFeature(treeData, treeAnchorID, searchClass) {
 
-        // Initialize the jsTree instance.
-        const tree = $('#' + tree_anchor_id).jstree({
+        let treeWrapper = $('<div class="mto-tree-wrapper"></div>');
+        let searchComponent = setupSearch(searchClass);
+        let treeComponent = setupTree(treeData, treeAnchorID);
+        bindSearchToTree(treeComponent, searchComponent, searchClass);
+
+        treeWrapper.prepend(searchComponent, treeComponent);
+        return treeWrapper;
+
+    }
+    function setupTree(treeData, treeAnchorID) {
+        let treeContainer = $('<div id="' + treeAnchorID + '"></div>');
+        treeContainer.jstree({
             'core': {
                 'dblclick_toggle': false,
                 "check_callback": true,
@@ -30,7 +37,7 @@ jQuery(document).ready(function ($) {
                     'dots': false,
                     'stripes': false,
                 },
-                'data': tree_data
+                'data': treeData
             },
             "types": {
                 "default": {
@@ -40,32 +47,27 @@ jQuery(document).ready(function ($) {
                     "icon": "file-icon"
                 }
             },
-            'plugins': ["search", "types", "dnd", "contextmenu", "wholerow"],
+            'plugins': ["search", "types", "contextmenu", "wholerow"],
             "search": {
                 "case_sensitive": false,
                 "show_only_matches": true
             }
         });
-
-        // Read the node ID from the URL.
-        const urlParams = new URLSearchParams(window.location.search);
-        const nodeId = urlParams.get('nodeId');
-
-        // When the tree is ready, select the node.
-        tree.on('ready.jstree', function () {
-            tree.jstree('select_node', nodeId);
-            // Add counts to all nodes
-
-        });
-
+        return treeContainer;
     }
 
-    function setupEventHandlers() {
-        const tree_anchor_id = "mto-admin-tree";
-        const search_field_class = 'mto-jstree-search ';
+    function bindSearchToTree(treeComponent, searchComponent, searchClass) {
+        $(searchComponent).find("." + searchClass).keyup(function () {
+            // Get the current search string.
+            const searchString = $(this).val();
 
-        // Event handler for when a node is activated (clicked).
-        $('#' + tree_anchor_id).on('activate_node.jstree', function (e, data) {
+            // Perform a search in the jsTree instance.
+            treeComponent.jstree('search', searchString);
+        });
+    }
+
+    function setupTreeNodeSelectSubmission(treeData) {
+        treeData.on('activate_node.jstree', function (e, data) {
             // Check if the action was triggered by a left-click
             if (data.event && data.event.which === 1) {
                 const nodeId = data.node.id; // Get the category ID associated with the clicked node.
@@ -74,23 +76,33 @@ jQuery(document).ready(function ($) {
                 window.location.href = 'upload.php?taxonomy=mto_category&term=' + nodeSlug + '&nodeId=' + nodeId;
             }
         });
+    }
 
-        // Event handler for when a key is pressed in the search input field.
-        $("." + search_field_class).keyup(function () {
-            // Get the current search string.
-            const searchString = $(this).val();
+    function selectLastVisit(treeData, visitCategory) {
 
-            // Perform a search in the jsTree instance.
-            $('#' + tree_anchor_id).jstree('search', searchString);
+        treeData.on('ready.jstree', function () {
+            treeData.jstree('select_node', visitCategory);
         });
+    }
 
-        $('.resizable-wrapper').resizable({
+    function setupSearch(searchClass) {
+        return $('<div class="mto-jstree-search-wrapper"> <input id="search-input" class="' + searchClass + '" placeholder="Folder search"/> </div>');
+    }
+
+    function setupResizeFeature(attachingElement, containedElement) {
+
+        let resizeWrapperID = "resizable-wrapper";
+        let resizeWrapper = $('<div id="' + resizeWrapperID + '"></div>');
+        resizeWrapper.append(containedElement);
+        attachingElement.prepend(resizeWrapper);
+
+        resizeWrapper.resizable({
             handles: 'e',
             minWidth: 250,
             maxWidth: 475,
 
             resize: function (event, ui) {
-                var remainingSpace = $(this).parent().width() - $(this).outerWidth(true),
+                let remainingSpace = $(this).parent().width() - $(this).outerWidth(true),
                     divTwo = $(this).next(),
                     divTwoWidth = remainingSpace - 10; // Subtract the margin
 
@@ -99,10 +111,53 @@ jQuery(document).ready(function ($) {
         });
 
         $(window).on('load resize', function () {
-            var wpbodyHeight = $('#wpbody').height();
-            $('.resizable-wrapper').height(wpbodyHeight);
+            let bodyHeight = resizeWrapper.height();
+            $('#' + resizeWrapperID).height(bodyHeight);
+        });
+    }
+
+    function setupDragAndDrop(dragTarget, dropTarget) {
+
+        setupDragFeature(dragTarget);
+        setupDropFeature(dropTarget);
+
+    }
+
+    function setupDragFeature(dragTarget) {
+
+        $(dragTarget).draggable({
+            helper: function () {
+                return $("<div></div>").text('Practice').attr('id', $(this).attr('id')).addClass('drag-helper');
+            },
+            revert: 'invalid',
+            appendTo: 'body'
         });
 
+    }
+
+    function setupDropFeature(dropTarget) {
+        dropTarget.on('model.jstree', function (e, data) {
+            $.each(data.nodes, function (index, nodeID) {
+                var checkExist = setInterval(function () {
+                    if ($('#' + nodeID + ' a').length) {
+                        clearInterval(checkExist);
+                        makeElementDroppable(nodeID);
+                    }
+                }, 100);
+            });
+        });
+    }
+
+    function makeElementDroppable(elementID) {
+
+        $('#' + elementID + ' a').droppable({
+            tolerance: 'pointer',
+            drop: function (event, ui) {
+                var nodeId = $(this).parent().attr('id');
+                var rowID = ui.draggable.attr('id');
+                console.log("Row " + rowID + " was placed in tree folder node " + nodeId);
+            }
+        });
 
     }
 

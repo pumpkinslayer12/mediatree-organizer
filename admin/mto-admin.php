@@ -42,6 +42,8 @@ function mto_setup_admin_media($hook)
     wp_enqueue_script('jstree', $jstree_path . 'js/mto-jstree.min.js', array('jquery'), '3.3.8', true);
     wp_enqueue_script('mto-admin-js', plugin_dir_url(__FILE__) . 'js/mto_admin.js', array('jstree'), '1.0.0', true);
     wp_enqueue_script('jquery-ui-resizable', '', array('jquery'), '', true);
+    wp_enqueue_script('jquery-ui-draggable', '', array('jquery'), '', true);
+    wp_enqueue_script('jquery-ui-droppable', '', array('jquery'), '', true);
 
 
     wp_enqueue_style('jstree-style', $jstree_path . 'css/mto-jstree.min.css');
