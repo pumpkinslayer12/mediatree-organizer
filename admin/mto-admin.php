@@ -131,6 +131,18 @@ function mto_admin_jstree_ajax_handler()
             $_POST['parentID'],
             $_POST['positionInHiearchy']
         );
+    } elseif ($nodeAction === "dragAndDrop") {
+        $response = mto_assign_media_to_category(
+            $_POST['nodeID'],
+            $_POST['mediaID'],
+        );
+
+    } elseif ($nodeAction === "moveNode") {
+        $response = mto_move_category(
+            $_POST['nodeID'],
+            $_POST['parentID'],
+            $_POST['positionInHiearchy']
+        );
 
     }
     wp_send_json($response);
@@ -160,7 +172,8 @@ function mto_rename_category($nodeID, $newName, $previousName)
         return $term->get_error_message();
     } else {
         return [
-            "systemGeneratedNodeID" => "mto-" . $term['term_id']
+            "systemGeneratedNodeID" => "mto-" . $term['term_id'],
+            "systemGeneratedSlug" => $slug
         ];
     }
 
@@ -185,6 +198,7 @@ function mto_create_category($nodeID, $parentID, $positionInHiearchy)
     // This will always be a random jstree id.
     $nodeID = sanitize_text_field($nodeID);
     $parentID = (int) trim($parentID, 'mto-');
+    $positionInHiearchy = (int) $positionInHiearchy;
 
     $termName = "New Folder " . $nodeID;
 
@@ -207,4 +221,40 @@ function mto_create_category($nodeID, $parentID, $positionInHiearchy)
             "originalNodeID" => $nodeID
         ];
     }
+}
+
+function mto_move_category($nodeID, $parentID, $positionInHiearchy)
+{
+    $nodeID = (int) trim($nodeID, 'mto-');
+    $parentID = (int) trim($parentID, 'mto-');
+    $positionInHiearchy = (int) $positionInHiearchy;
+    $args = ['parent' => $parentID];
+    $status = wp_update_term(
+        $nodeID,
+        'mto_category',
+        $args
+    );
+    if (is_wp_error($status)) {
+        return $status->get_error_message();
+    } else {
+        return [
+            "status" => "success",
+        ];
+    }
+
+}
+function mto_assign_media_to_category($nodeID, $mediaID)
+{
+    $nodeID = (int) trim($nodeID, 'mto-');
+    $mediaID = (int) trim($mediaID, 'post-');
+    $status = wp_set_object_terms($mediaID, $nodeID, 'mto_category');
+    if (is_wp_error($status)) {
+        return $status->get_error_message();
+    } else {
+        return [
+            "status" => "success",
+        ];
+    }
+
+
 }

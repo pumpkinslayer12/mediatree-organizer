@@ -36,7 +36,16 @@ jQuery(document).ready(function ($) {
                 });
         })
         .on('rename_node.jstree', function (e, data) {
-            adminAjaxHandler({ ...ajaxSecurityData, ...renameNodeDataHandler(data) }, ajaxurl);
+            adminAjaxHandler({ ...ajaxSecurityData, ...renameNodeDataHandler(data) }, ajaxurl)
+                .then(response => {
+                    data.node.original.slug = response.systemGeneratedSlug;
+
+                }).catch(error => {
+                    console.error(error);
+                });
+        })
+        .on('move_node.jstree', function (e, data) {
+            console.log("Move Node Response: ", adminAjaxHandler({ ...ajaxSecurityData, ...moveNodeDataHandler(data) }, ajaxurl));
         });
 
     function setupTreeFeature(treeData, treeAnchorID, searchClass) {
@@ -109,9 +118,13 @@ jQuery(document).ready(function ($) {
                 const nodeId = data.node.id; // Get the category ID associated with the clicked node.
                 const nodeSlug = data.node.original.slug; // Get the category slug associated with the clicked node.
                 // Redirect to a new URL with the category slug as a parameter.
-                window.location.href = 'upload.php?taxonomy=mto_category&term=' + nodeSlug + '&nodeId=' + nodeId;
+                changeUrl(nodeSlug, nodeId);
             }
         });
+    }
+
+    function changeUrl(nodeSlug, nodeId) {
+        window.location.href = 'upload.php?taxonomy=mto_category&term=' + nodeSlug + '&nodeId=' + nodeId;
     }
 
     function selectLastVisit(treeData, visitCategory) {
@@ -163,7 +176,7 @@ jQuery(document).ready(function ($) {
 
         $(dragTarget).draggable({
             helper: function () {
-                return $("<div></div>").text('Practice').attr('id', $(this).attr('id')).addClass('drag-helper');
+                return $("<div></div>").text('Media Item').attr('id', $(this).attr('id')).addClass('drag-helper');
             },
             revert: 'invalid',
             appendTo: 'body'
@@ -189,9 +202,17 @@ jQuery(document).ready(function ($) {
         $('#' + elementID + ' a').droppable({
             tolerance: 'pointer',
             drop: function (event, ui) {
-                var nodeId = $(this).parent().attr('id');
-                var rowID = ui.draggable.attr('id');
-                console.log("Row " + rowID + " was placed in tree folder node " + nodeId);
+                let nodeId = $(this).parent().attr('id');
+                let rowID = ui.draggable.attr('id');
+                console.log("Drop Data in Ajax Request: ", dragAndDropNodeDataHandler(nodeId, rowID));
+                adminAjaxHandler({ ...ajaxSecurityData, ...dragAndDropNodeDataHandler(nodeId, rowID) }, ajaxurl)
+                    .then(response => {
+                        let activationNode = baseTree.jstree(true).get_node(nodeId);
+                        let nodeSlug = activationNode.original.slug;
+                        changeUrl(nodeSlug, nodeId);
+                    }).catch(error => {
+                        console.error(error);
+                    });
             }
         });
 
@@ -206,7 +227,6 @@ jQuery(document).ready(function ($) {
             nodeAction: 'create'
         }
     };
-
 
     function deleteNodeDataHandler(nodeData) {
         return {
@@ -225,6 +245,23 @@ jQuery(document).ready(function ($) {
         }
     }
 
+    function dragAndDropNodeDataHandler(nodeID, mediaID) {
+        return {
+            nodeID: nodeID,
+            mediaID: mediaID,
+            nodeAction: "dragAndDrop"
+        }
+
+    }
+
+    function moveNodeDataHandler(nodeData) {
+        return {
+            nodeID: nodeData.node.id,
+            parentID: nodeData.parent,
+            positionInHiearchy: nodeData.position,
+            nodeAction: 'moveNode'
+        }
+    }
     function adminAjaxHandler(ajaxData, ajaxURL) {
         return new Promise((resolve, reject) => {
             $.ajax({

@@ -35,10 +35,7 @@ body.wp-admin.upload-php #wpfooter {
     /* Or adjust as needed */
 }
 
-.resizable-wrapper {
-
-    background-color: #fff;
-    box-sizing: border-box;
+#resizable-wrapper {
     min-width: 250px;
     margin-right: 10px;
 
