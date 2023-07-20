@@ -30,7 +30,7 @@ jQuery(document).ready(function ($) {
         .on('create_node.jstree', function (e, data) {
             adminAjaxHandler({ ...ajaxSecurityData, ...createNodeDataHandler(data) }, ajaxurl)
                 .then(response => {
-                    $('#' + response.originalNodeID).attr("id", response.systemGeneratedNodeID);
+                    baseTree.jstree(true).set_id(data.node, response.systemGeneratedNodeID);
                 }).catch(error => {
                     console.error(error);
                 });

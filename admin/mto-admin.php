@@ -142,14 +142,42 @@ function mto_rename_category($nodeID, $newName, $previousName)
 {
     $nodeID = (int) trim($nodeID, 'mto-');
     $newName = sanitize_text_field($newName);
-    $previousName = sanitize_text_field($previousName);
-    return ['actionResponse' => "This is a rename action"];
+    //$previousName = sanitize_text_field($previousName);
+    $slug = sanitize_title($newName);
+
+    $args = [
+        "name" => $newName,
+        "slug" => $slug
+    ];
+
+    $term = wp_update_term(
+        $nodeID,
+        'mto_category',
+        $args
+    );
+
+    if (is_wp_error($term)) {
+        return $term->get_error_message();
+    } else {
+        return [
+            "systemGeneratedNodeID" => "mto-" . $term['term_id']
+        ];
+    }
+
+    return $response;
 }
 
 function mto_delete_category($nodeID)
 {
     $nodeID = (int) trim($nodeID, 'mto-');
-    return ['actionResponse' => "This is a delete action"];
+    $status = wp_delete_term($nodeID, 'mto_category');
+    if (is_wp_error($status)) {
+        return $status->get_error_message();
+    } else {
+        return [
+            "status" => $status,
+        ];
+    }
 }
 
 function mto_create_category($nodeID, $parentID, $positionInHiearchy)
@@ -172,13 +200,11 @@ function mto_create_category($nodeID, $parentID, $positionInHiearchy)
     );
 
     if (is_wp_error($term)) {
-        $response = $term->get_error_message();
+        return $term->get_error_message();
     } else {
-        $response = [
+        return [
             "systemGeneratedNodeID" => "mto-" . $term['term_id'],
             "originalNodeID" => $nodeID
         ];
     }
-
-    return $response;
 }
