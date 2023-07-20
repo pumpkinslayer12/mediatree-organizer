@@ -19,8 +19,9 @@ body.wp-admin.upload-php #wpfooter {
 
 #mto-admin-tree {
     background-color: #f7f7f7;
-    padding: 0;
+    padding: 10px;
 }
+
 
 .folder-icon.jstree-themeicon {
     background-image: url('../../assets/folder.png');
@@ -64,6 +65,7 @@ body.wp-admin.upload-php #wpfooter {
     cursor: ew-resize;
     background: grey;
 }
+
 
 .vakata-context,
 .vakata-context ul {

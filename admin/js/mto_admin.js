@@ -4,7 +4,7 @@ jQuery(document).ready(function ($) {
 
     let treeAnchorID = "mto-admin-tree";
     let searchClass = 'mto-jstree-search';
-    let treeFeature = setupTreeFeature(mtoData.categories_json, treeAnchorID, searchClass);
+    let treeFeature = setupTreeFeature(mtoData.categoriesJson, treeAnchorID, searchClass);
 
     let urlParams = new URLSearchParams(window.location.search);
     let lastVisit = urlParams.get('nodeId');
@@ -15,6 +15,29 @@ jQuery(document).ready(function ($) {
     setupResizeFeature($('#wpbody'), treeFeature);
 
     setupDragAndDrop($('#the-list tr'), baseTree);
+
+    const ajaxurl = mtoData.ajaxURL;
+
+    const ajaxSecurityData = {
+        action: 'admin_jstree_ajax_handler',
+        nonce: mtoData.ajaxNonce
+    }
+
+    baseTree
+        .on('delete_node.jstree', function (e, data) {
+            adminAjaxHandler({ ...ajaxSecurityData, ...deleteNodeDataHandler(data) }, ajaxurl);
+        })
+        .on('create_node.jstree', function (e, data) {
+            adminAjaxHandler({ ...ajaxSecurityData, ...createNodeDataHandler(data) }, ajaxurl)
+                .then(response => {
+                    $('#' + response.originalNodeID).attr("id", response.systemGeneratedNodeID);
+                }).catch(error => {
+                    console.error(error);
+                });
+        })
+        .on('rename_node.jstree', function (e, data) {
+            adminAjaxHandler({ ...ajaxSecurityData, ...renameNodeDataHandler(data) }, ajaxurl);
+        });
 
     function setupTreeFeature(treeData, treeAnchorID, searchClass) {
 
@@ -47,11 +70,24 @@ jQuery(document).ready(function ($) {
                     "icon": "file-icon"
                 }
             },
-            'plugins': ["search", "types", "contextmenu", "wholerow"],
+            'plugins': ["search", "types", "contextmenu", "wholerow", "dnd"],
             "search": {
                 "case_sensitive": false,
                 "show_only_matches": true
+            },
+            'contextmenu': {
+                'items': function (node) {
+                    var defaultItems = $.jstree.defaults.contextmenu.items();
+                    defaultItems.create.label = "Add Folder";
+                    defaultItems.rename.label = "Rename Folder";
+                    defaultItems.remove.label = "Delete Folder";
+
+                    delete defaultItems.ccp;
+
+                    return defaultItems;
+                }
             }
+
         });
         return treeContainer;
     }
@@ -160,5 +196,51 @@ jQuery(document).ready(function ($) {
         });
 
     }
+
+    function createNodeDataHandler(nodeData) {
+
+        return {
+            nodeID: nodeData.node.id,
+            parentID: nodeData.parent,
+            positionInHiearchy: nodeData.position,
+            nodeAction: 'create'
+        }
+    };
+
+
+    function deleteNodeDataHandler(nodeData) {
+        return {
+            nodeID: nodeData.node.id,
+            parentID: nodeData.parent,
+            nodeAction: 'delete'
+        }
+    }
+
+    function renameNodeDataHandler(nodeData) {
+        return {
+            nodeID: nodeData.node.id,
+            newName: nodeData.text,
+            previousName: nodeData.old,
+            nodeAction: 'rename'
+        }
+    }
+
+    function adminAjaxHandler(ajaxData, ajaxURL) {
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: ajaxURL,
+                method: 'POST',
+                data: ajaxData,
+                success: function (response) {
+                    console.log('Response:', response); // Debugging line
+                    resolve(response);
+                },
+                error: function () {
+                    reject("Error sending response");
+                }
+            });
+        });
+    }
+
 
 });

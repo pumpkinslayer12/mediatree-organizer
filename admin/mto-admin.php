@@ -20,23 +20,6 @@ function mto_setup_admin_media($hook)
         return;
     }
 
-    // If the category ID GET parameter is set, add a filter to the WP_Query that gets the media items.
-    if (isset($_GET['categoryId']) && is_numeric($_GET['categoryId'])) {
-        $categoryId = intval($_GET['categoryId']);
-
-        add_filter('ajax_query_attachments_args', function ($query) use ($categoryId) {
-            $query['tax_query'] = [
-                [
-                    'taxonomy' => 'mto_category',
-                    'field' => 'term_id',
-                    'terms' => $categoryId,
-                    'include_children' => false,
-                ],
-            ];
-            return $query;
-        });
-    }
-
     $jstree_path = plugin_dir_url(__FILE__) . '../includes/';
 
     wp_enqueue_script('jstree', $jstree_path . 'js/mto-jstree.min.js', array('jquery'), '3.3.8', true);
@@ -55,7 +38,9 @@ function mto_setup_admin_media($hook)
         'mto-admin-js',
         'mtoData',
         array(
-            'categories_json' => mto_get_categories_for_folders(),
+            'categoriesJson' => mto_get_categories_for_folders(),
+            'ajaxURL' => admin_url('admin-ajax.php'),
+            'ajaxNonce' => wp_create_nonce('mto_ajax_nonce')
         )
     );
 
@@ -80,10 +65,10 @@ function mto_get_categories_for_folders($parent = 0)
     if (!empty($terms) && is_array($terms)) {
         foreach ($terms as $term) {
             $category = [
-                'id' => $term->term_id,
-                'text' => $term->name . '– (' . count_attachments_in_taxonomy($taxonomy, $term->slug) . ')',
+                'id' => "mto-" . $term->term_id,
+                'text' => $term->name . ' - (' . mto_count_attachments_in_taxonomy($taxonomy, $term->slug) . ')',
                 'children' => [],
-                'slug' => $term->slug,
+                'slug' => $term->slug
             ];
 
             // If the term has children, get them
@@ -98,7 +83,7 @@ function mto_get_categories_for_folders($parent = 0)
     return $categories;
 }
 
-function count_attachments_in_taxonomy($taxonomy, $term)
+function mto_count_attachments_in_taxonomy($taxonomy, $term)
 {
     $args = array(
         'post_type' => 'attachment',
@@ -116,33 +101,84 @@ function count_attachments_in_taxonomy($taxonomy, $term)
 
     return $query->found_posts;
 }
-function mto_register_custom_taxonomy()
+
+function mto_admin_jstree_ajax_handler()
 {
-    $labels = array(
-        'name' => _x('Categories', 'taxonomy general name', 'mediatree-organizer'),
-        'singular_name' => _x('Category', 'taxonomy singular name', 'mediatree-organizer'),
-        'search_items' => __('Search Categories', 'mediatree-organizer'),
-        'all_items' => __('All Categories', 'mediatree-organizer'),
-        'parent_item' => __('Parent Category', 'mediatree-organizer'),
-        'parent_item_colon' => __('Parent Category:', 'mediatree-organizer'),
-        'edit_item' => __('Edit Category', 'mediatree-organizer'),
-        'update_item' => __('Update Category', 'mediatree-organizer'),
-        'add_new_item' => __('Add New Category', 'mediatree-organizer'),
-        'new_item_name' => __('New Category Name', 'mediatree-organizer'),
-        'menu_name' => __('Category', 'mediatree-organizer'),
-    );
+    if (
+        !isset($_POST['nonce']) ||
+        !wp_verify_nonce($_POST['nonce'], 'mto_ajax_nonce') &&
+        !current_user_can('manage_categories')
+    ) {
+        echo "Nonce verification failed.";
+        wp_die();
+    }
 
-    $args = array(
-        'hierarchical' => true,
-        'labels' => $labels,
-        'show_ui' => true,
-        'show_admin_column' => true,
-        'query_var' => true,
-        'rewrite' => array('slug' => 'media-category'),
-        'show_in_rest' => true,
-    );
+    $response = [];
+    $nodeAction = $_POST['nodeAction'];
+    if ($nodeAction === "rename") {
+        $response = mto_rename_category(
+            $_POST['nodeID'],
+            $_POST['newName'],
+            $_POST['previousName']
+        );
+    } elseif ($nodeAction === "delete") {
+        $response = mto_delete_category(
+            $_POST['nodeID'],
+        );
+    } elseif ($nodeAction === "create") {
+        $response = mto_create_category(
+            $_POST['nodeID'],
+            $_POST['parentID'],
+            $_POST['positionInHiearchy']
+        );
 
-    register_taxonomy('mto_category', array('attachment'), $args);
+    }
+    wp_send_json($response);
 }
 
-add_action('init', 'mto_register_custom_taxonomy');
+add_action('wp_ajax_admin_jstree_ajax_handler', 'mto_admin_jstree_ajax_handler');
+
+function mto_rename_category($nodeID, $newName, $previousName)
+{
+    $nodeID = (int) trim($nodeID, 'mto-');
+    $newName = sanitize_text_field($newName);
+    $previousName = sanitize_text_field($previousName);
+    return ['actionResponse' => "This is a rename action"];
+}
+
+function mto_delete_category($nodeID)
+{
+    $nodeID = (int) trim($nodeID, 'mto-');
+    return ['actionResponse' => "This is a delete action"];
+}
+
+function mto_create_category($nodeID, $parentID, $positionInHiearchy)
+{
+    // This will always be a random jstree id.
+    $nodeID = sanitize_text_field($nodeID);
+    $parentID = (int) trim($parentID, 'mto-');
+
+    $termName = "New Folder " . $nodeID;
+
+    $args = [];
+
+    if ($parentID) {
+        $args = ['parent' => $parentID];
+    }
+    $term = wp_insert_term(
+        $termName,
+        'mto_category',
+        $args
+    );
+
+    if (is_wp_error($term)) {
+        $response = $term->get_error_message();
+    } else {
+        $response = [
+            "systemGeneratedNodeID" => "mto-" . $term['term_id'],
+            "originalNodeID" => $nodeID
+        ];
+    }
+
+    return $response;
+}
