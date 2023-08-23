@@ -48,12 +48,15 @@ jQuery(document).ready(function ($) {
             console.log("Move Node Response: ", adminAjaxHandler({ ...ajaxSecurityData, ...moveNodeDataHandler(data) }, ajaxurl));
         });
 
+    $(".jstree-anchor").append("<span>Happy</span>");
+
     function setupTreeFeature(treeData, treeAnchorID, searchClass) {
 
         let treeWrapper = $('<div class="mto-tree-wrapper"></div>');
         let searchComponent = setupSearch(searchClass);
         let treeComponent = setupTree(treeData, treeAnchorID);
         bindSearchToTree(treeComponent, searchComponent, searchClass);
+
 
         treeWrapper.prepend(searchComponent, treeComponent);
         return treeWrapper;
@@ -79,7 +82,7 @@ jQuery(document).ready(function ($) {
                     "icon": "file-icon"
                 }
             },
-            'plugins': ["search", "types", "contextmenu", "wholerow", "dnd"],
+            'plugins': ["search", "types", "contextmenu3", "wholerow", "dnd"],
             "search": {
                 "case_sensitive": false,
                 "show_only_matches": true

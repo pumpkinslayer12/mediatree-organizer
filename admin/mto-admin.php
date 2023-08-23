@@ -38,20 +38,27 @@ function mto_setup_admin_media($hook)
         'mto-admin-js',
         'mtoData',
         array(
-            'categoriesJson' => mto_get_categories_for_folders(),
+            'categoriesJson' => mto_get_categories_for_folders(
+                0,
+                mto_get_category_counts(mto_custom_taxonomy_slug())
+            ),
             'ajaxURL' => admin_url('admin-ajax.php'),
-            'ajaxNonce' => wp_create_nonce('mto_ajax_nonce')
+            'ajaxNonce' => wp_create_nonce('mto_ajax_nonce'),
         )
     );
 
 }
 add_action('admin_enqueue_scripts', 'mto_setup_admin_media');
 
+function mto_custom_taxonomy_slug()
+{
+    return 'mto_category';
+}
 
 // Recursive function to fetch and build an array of categories and subcategories to build admin folders
-function mto_get_categories_for_folders($parent = 0)
+function mto_get_categories_for_folders($parent = 0, $categoryCounts = [])
 {
-    $taxonomy = 'mto_category';
+    $taxonomy = mto_custom_taxonomy_slug();
     $args = array(
         'taxonomy' => $taxonomy,
         'parent' => $parent,
@@ -61,19 +68,28 @@ function mto_get_categories_for_folders($parent = 0)
     $terms = get_terms($args);
     $categories = [];
 
+
     // Check if any term exists
     if (!empty($terms) && is_array($terms)) {
         foreach ($terms as $term) {
+
+            if (array_key_exists($term->slug, $categoryCounts)) {
+                $categoryCount = $categoryCounts[$term->slug];
+            } else {
+                $categoryCount = 0;
+            }
+
             $category = [
                 'id' => "mto-" . $term->term_id,
-                'text' => $term->name . ' - (' . mto_count_attachments_in_taxonomy($taxonomy, $term->slug) . ')',
+                'text' => $term->name,
                 'children' => [],
-                'slug' => $term->slug
+                'slug' => $term->slug,
+                'a_attr' => ['data-count' => $categoryCount]
             ];
 
             // If the term has children, get them
-            if (get_term_children($term->term_id, 'mto_category')) {
-                $category['children'] = mto_get_categories_for_folders($term->term_id);
+            if (get_term_children($term->term_id, mto_custom_taxonomy_slug())) {
+                $category['children'] = mto_get_categories_for_folders($term->term_id, $categoryCounts);
             }
 
             $categories[] = $category;
@@ -83,23 +99,46 @@ function mto_get_categories_for_folders($parent = 0)
     return $categories;
 }
 
-function mto_count_attachments_in_taxonomy($taxonomy, $term)
+function mto_get_category_counts($taxonomy)
 {
+    // Get all the terms for the specified taxonomy
+    $terms = get_terms(
+        array(
+            'taxonomy' => $taxonomy,
+            'hide_empty' => false,
+        )
+    );
+
+    // Initialize the result array with zero counts
+    $result = array();
+    foreach ($terms as $term) {
+        $result[$term->slug] = 0;
+    }
+
+    // Query all attachments associated with the taxonomy
     $args = array(
         'post_type' => 'attachment',
         'post_status' => 'inherit',
         'tax_query' => array(
             array(
                 'taxonomy' => $taxonomy,
-                'field' => 'slug',
-                'terms' => $term,
+                'operator' => 'EXISTS',
             ),
         ),
+        'nopaging' => true, // Get all posts without pagination
     );
 
     $query = new WP_Query($args);
 
-    return $query->found_posts;
+    // Loop through attachments and increase the count for each term
+    foreach ($query->posts as $post) {
+        $post_terms = wp_get_post_terms($post->ID, $taxonomy);
+        foreach ($post_terms as $post_term) {
+            $result[$post_term->slug]++;
+        }
+    }
+
+    return $result;
 }
 
 function mto_admin_jstree_ajax_handler()
@@ -164,7 +203,7 @@ function mto_rename_category($nodeID, $newName, $previousName)
 
     $term = wp_update_term(
         $nodeID,
-        'mto_category',
+        mto_custom_taxonomy_slug(),
         $args
     );
 
@@ -183,7 +222,7 @@ function mto_rename_category($nodeID, $newName, $previousName)
 function mto_delete_category($nodeID)
 {
     $nodeID = (int) trim($nodeID, 'mto-');
-    $status = wp_delete_term($nodeID, 'mto_category');
+    $status = wp_delete_term($nodeID, mto_custom_taxonomy_slug());
     if (is_wp_error($status)) {
         return $status->get_error_message();
     } else {
@@ -209,7 +248,7 @@ function mto_create_category($nodeID, $parentID, $positionInHiearchy)
     }
     $term = wp_insert_term(
         $termName,
-        'mto_category',
+        mto_custom_taxonomy_slug(),
         $args
     );
 
@@ -231,7 +270,7 @@ function mto_move_category($nodeID, $parentID, $positionInHiearchy)
     $args = ['parent' => $parentID];
     $status = wp_update_term(
         $nodeID,
-        'mto_category',
+        mto_custom_taxonomy_slug(),
         $args
     );
     if (is_wp_error($status)) {
@@ -247,7 +286,7 @@ function mto_assign_media_to_category($nodeID, $mediaID)
 {
     $nodeID = (int) trim($nodeID, 'mto-');
     $mediaID = (int) trim($mediaID, 'post-');
-    $status = wp_set_object_terms($mediaID, $nodeID, 'mto_category');
+    $status = wp_set_object_terms($mediaID, $nodeID, mto_custom_taxonomy_slug());
     if (is_wp_error($status)) {
         return $status->get_error_message();
     } else {
