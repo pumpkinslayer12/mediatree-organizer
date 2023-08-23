@@ -10,6 +10,7 @@ jQuery(document).ready(function ($) {
     let lastVisit = urlParams.get('nodeId');
 
     let baseTree = $(treeFeature).find("#" + treeAnchorID);
+    
     setupTreeNodeSelectSubmission(baseTree);
     selectLastVisit(baseTree, lastVisit);
     setupResizeFeature($('#wpbody'), treeFeature);
@@ -47,8 +48,6 @@ jQuery(document).ready(function ($) {
         .on('move_node.jstree', function (e, data) {
             console.log("Move Node Response: ", adminAjaxHandler({ ...ajaxSecurityData, ...moveNodeDataHandler(data) }, ajaxurl));
         });
-
-    $(".jstree-anchor").append("<span>Happy</span>");
 
     function setupTreeFeature(treeData, treeAnchorID, searchClass) {
 

@@ -10,8 +10,8 @@
 jQuery(function ($) {
 
     // Parse the directory tree data from the localized script.
-    var tree_data = mtoData.directory_structure;
-    var tree_anchor_id = "mto-admin-tree";
+    let tree_data = mtoData.directory_structure;
+    let tree_anchor_id = "mto-admin-tree";
 
     // Initialize the jsTree instance.
     $('#' + tree_anchor_id).jstree({
@@ -46,13 +46,12 @@ jQuery(function ($) {
     // Event handler for when a node is activated (clicked).
     $('#' + tree_anchor_id).on('activate_node.jstree', function (e, data) {
 
-        var node = data.node; // The clicked node.
+        let node = data.node; // The clicked node.
 
         // Determine whether the clicked node is a folder.
-        var isFolder = data.instance.is_parent(node);
+        let isFolder = data.instance.is_parent(node);
 
-        if (isFolder) {
-            // Prevent folders from being opened in a new tab.
+        if (node.a_attr.href === "#") {
             e.preventDefault();
         } else {
             // If the node is a file and has a URL, open the URL in a new tab.
@@ -70,7 +69,7 @@ jQuery(function ($) {
         $(".mediaviewer-search-input").keyup(function () {
 
             // Get the current search string.
-            var searchString = $(this).val();
+            let searchString = $(this).val();
 
             // Perform a search in the jsTree instance.
             $('#' + tree_anchor_id).jstree('search', searchString);

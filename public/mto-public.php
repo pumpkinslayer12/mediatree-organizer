@@ -35,9 +35,6 @@ function mto_build_directory_structure($parent = 0)
                 'icon' => 'folder-icon',
                 // Assign a folder icon class to the folder
                 'children' => [],
-                'a_attr' => [
-                    'href' => get_term_link($term->term_id)
-                ]
             ];
 
             // Query for attachments associated with this term
@@ -65,7 +62,9 @@ function mto_build_directory_structure($parent = 0)
                         'icon' => mto_get_icon_class_by_mime_type($attachment->post_mime_type),
                         // Assign a file icon class to the file based on MIME type
                         'a_attr' => [
-                            'href' => wp_get_attachment_url($attachment->ID)
+                            'href' => wp_get_attachment_url($attachment->ID),
+                            'data-last-modified' => "Last Modified: " . get_post_modified_time('F j, Y', false, $attachment->ID),
+                            'class' => 'jstree-media-item'
                         ]
                     ];
                     $category['children'][] = $file;
@@ -120,10 +119,22 @@ function mto_display_directory_shortcode()
         )
     );
 
-    $searchForm = '<div><input id="search-input" class="mediaviewer-search-input" placeholder="File search"/> </div>';
+    ob_start();
+    ?>
 
-    return $searchForm . '<div id="mto-admin-tree"></div>';
-    ;
+    <div class="mto-tree-wrapper">
+        <div>
+            <input id="search-input" class="mediaviewer-search-input" placeholder="File search" />
+        </div>
+
+        <div id="mto-admin-tree">
+
+        </div>
+
+    </div>
+
+    <?php
+    return ob_get_clean();
 }
 
 add_shortcode('mto_display_folders', 'mto_display_directory_shortcode');
