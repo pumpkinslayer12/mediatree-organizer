@@ -157,8 +157,7 @@ function mto_admin_jstree_ajax_handler()
     if ($nodeAction === "rename") {
         $response = mto_rename_category(
             $_POST['nodeID'],
-            $_POST['newName'],
-            $_POST['previousName']
+            $_POST['newName']
         );
     } elseif ($nodeAction === "delete") {
         $response = mto_delete_category(
@@ -189,11 +188,10 @@ function mto_admin_jstree_ajax_handler()
 
 add_action('wp_ajax_admin_jstree_ajax_handler', 'mto_admin_jstree_ajax_handler');
 
-function mto_rename_category($nodeID, $newName, $previousName)
+function mto_rename_category($nodeID, $newName)
 {
     $nodeID = (int) trim($nodeID, 'mto-');
     $newName = sanitize_text_field($newName);
-    //$previousName = sanitize_text_field($previousName);
     $slug = sanitize_title($newName);
 
     $args = [
@@ -297,3 +295,54 @@ function mto_assign_media_to_category($nodeID, $mediaID)
 
 
 }
+
+function mto_filter_media_library_by_category($query)
+{
+    // Check if we are in the admin area and it's the main query
+    if (
+        is_admin() &&
+        $query->is_main_query() &&
+        $query->get('post_type') == 'attachment'
+    ) {
+        // Check if the query is for the 'attachment' post type (media items)
+
+        // Check if taxonomy and term are present in the URL
+        if (isset($_GET['taxonomy']) && isset($_GET['term'])) {
+
+            if ($_GET['taxonomy'] === 'mto_category') {
+                // Get the term slug from the URL
+                if (isset($_GET['nodeId']) && (int) $_GET['nodeId'] === -1) {
+
+                    $tax_query = array(
+                        array(
+                            'taxonomy' => 'mto_category',
+                            'operator' => 'NOT EXISTS'
+                        ),
+                    );
+
+
+                } else {
+                    $term_slug = sanitize_text_field($_GET['term']);
+
+                    // Set the taxonomy query for the custom category
+                    $tax_query = array(
+                        array(
+                            'taxonomy' => 'mto_category',
+                            'field' => 'slug',
+                            'terms' => $term_slug,
+                            'include_children' => false
+                        ),
+                    );
+
+                    // Modify the query to include media items belonging to the specified category
+
+                }
+                $query->set('tax_query', $tax_query);
+            }
+
+        }
+    }
+}
+
+// Hook the function into the pre_get_posts action
+add_action('pre_get_posts', 'mto_filter_media_library_by_category');

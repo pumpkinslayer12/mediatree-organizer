@@ -10,7 +10,7 @@ jQuery(document).ready(function ($) {
     let lastVisit = urlParams.get('nodeId');
 
     let baseTree = $(treeFeature).find("#" + treeAnchorID);
-    
+
     setupTreeNodeSelectSubmission(baseTree);
     selectLastVisit(baseTree, lastVisit);
     setupResizeFeature($('#wpbody'), treeFeature);
@@ -52,13 +52,25 @@ jQuery(document).ready(function ($) {
     function setupTreeFeature(treeData, treeAnchorID, searchClass) {
 
         let treeWrapper = $('<div class="mto-tree-wrapper"></div>');
+        let uncategorizedButton = setupButton("uncatagorized-media-items-btn");
         let searchComponent = setupSearch(searchClass);
         let treeComponent = setupTree(treeData, treeAnchorID);
         bindSearchToTree(treeComponent, searchComponent, searchClass);
 
 
-        treeWrapper.prepend(searchComponent, treeComponent);
+        treeWrapper.prepend(uncategorizedButton, searchComponent, treeComponent);
         return treeWrapper;
+
+    }
+    function setupButton(buttonID) {
+        let uncategorizedButton = $('<div class="uncategorized-button"><button id="' + buttonID + '">Uncategorized Media</button></div>');
+        
+        uncategorizedButton.click(function() {
+            // Call the changeURL function with the parameters you specified
+            changeUrl('', -1);
+          });
+        
+        return uncategorizedButton;
 
     }
     function setupTree(treeData, treeAnchorID) {
