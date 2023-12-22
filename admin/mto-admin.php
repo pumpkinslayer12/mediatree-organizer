@@ -284,12 +284,23 @@ function mto_assign_media_to_category($nodeID, $mediaID)
 {
     $nodeID = (int) trim($nodeID, 'mto-');
     $mediaID = (int) trim($mediaID, 'post-');
+
+    // Get the first old category id, if available
+
+    $previousTerms = get_the_terms($mediaID, mto_custom_taxonomy_slug());
+
+    $previousCategory = !empty($previousTerms) ? 'mto-' . $previousTerms[0]->term_id : "";
+
     $status = wp_set_object_terms($mediaID, $nodeID, mto_custom_taxonomy_slug());
+
     if (is_wp_error($status)) {
         return $status->get_error_message();
     } else {
+
+
         return [
             "status" => "success",
+            "previousCategory" => $previousCategory
         ];
     }
 
