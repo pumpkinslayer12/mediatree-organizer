@@ -310,13 +310,16 @@ function mto_media_grid_view_click($nodeSlug)
 {
     $term_slug = sanitize_text_field($nodeSlug);
 
-    $tax_query = array(
-        'taxonomy' => mto_custom_taxonomy_slug(),
-        'field' => 'slug',
-        'terms' => $term_slug,
-        'include_children' => false
-    );
+    $tax_query = array('taxonomy' => mto_custom_taxonomy_slug());
 
+    if ((int) $term_slug === -1) {
+        $tax_query['operator'] = 'NOT EXISTS';
+    } else {
+
+        $tax_query['field'] = 'slug';
+        $tax_query['terms'] = $term_slug;
+        $tax_query['include_children'] = false;
+    }
     $args = array(
         'posts_per_page' => -1, // Get all posts
         'post_type' => 'attachment', // Replace with your custom post type
@@ -337,7 +340,6 @@ function mto_media_grid_view_click($nodeSlug)
         return array(
             "status" => "success",
             "slugMediaIds" => $post_ids,
-            "slugLoop" => $term_slug
         );
     }
 }

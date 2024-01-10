@@ -4,16 +4,15 @@ jQuery(document).ready(function ($) {
 
     let mediaView, dragTarget, dropRemovalType, dropAttributeValue, dropAttributePrefix;
 
-    if (document.getElementById('the-list')) {
-        mediaView = 'list';
+    mediaView = mediaGalleryTypeDisplayed();
+    if (mediaView === 'list') {
         dragTarget = '#the-list tr';
         dropRemovalType = 'table';
         dropAttributeValue = 'id';
         dropAttributePrefix = '';
     }
 
-    else if (document.getElementById('wp-media-grid')) {
-        mediaView = 'grid';
+    else if (mediaView === 'grid') {
         dragTarget = '.attachment';
         dropRemovalType = 'gallery';
         dropAttributeValue = 'data-id';
@@ -42,6 +41,18 @@ jQuery(document).ready(function ($) {
     setupResizeFeature($('#wpbody'), treeFeature);
     setupTreeNodeEvents(baseTree);
 
+    function mediaGalleryTypeDisplayed() {
+        if (document.getElementById('the-list')) {
+            return 'list';
+        }
+        else if (document.getElementById('wp-media-grid')) {
+            return 'grid';
+        }
+        else {
+            return '';
+        }
+    }
+
     function ajaxURL() {
         return mtoData.ajaxURL;
     }
@@ -49,7 +60,8 @@ jQuery(document).ready(function ($) {
     function setupTreeFeature(treeData, treeAnchorID, searchClass) {
 
         let treeWrapper = $('<div class="mto-tree-wrapper"></div>');
-        let uncategorizedButton = setupButton("uncatagorized-media-items-btn");
+        let uncategorizedButton = setupButton('uncatagorized-media-items-btn', mediaGalleryTypeDisplayed());
+
         let searchComponent = $('<div class="mto-jstree-search-wrapper"> <input id="search-input" class="' + searchClass + '" placeholder="Folder search"/> </div>');
         let treeComponent = setupTree(treeData, treeAnchorID);
         bindSearchToTree(treeComponent, searchComponent, searchClass);
@@ -58,13 +70,21 @@ jQuery(document).ready(function ($) {
 
     }
 
-    function setupButton(buttonID) {
+    function setupButton(buttonID, galleryType) {
         let uncategorizedButton = $('<div class="uncategorized-button"><button id="' + buttonID + '">Uncategorized Media</button></div>');
 
-        uncategorizedButton.click(function () {
-            // Call the changeURL function with the parameters you specified
-            changeUrl('', -1);
-        });
+        if (galleryType === "grid") {
+            uncategorizedButton.click(function () {
+                // Call the changeURL function with the parameters you specified
+                filterGrid(-1);
+            });
+        }
+        else {
+            uncategorizedButton.click(function () {
+                // Call the changeURL function with the parameters you specified
+                changeUrl('', -1);
+            });
+        }
 
         return uncategorizedButton;
 
@@ -137,25 +157,30 @@ jQuery(document).ready(function ($) {
 
     function filterMediaGrid(data) {
         if (data.event && data.event.which === 1) {
-            adminAjaxHandler({ ...ajaxDataHandler(), ...mediaGridDataHandler(data) }, ajaxURL())
-                .then(response => {
-                    if (response.slugMediaIds) {
-
-                        // Clear the current media grid
-                        wp.media.frame.content.get().collection.reset();
-
-                        // Add media items from the response to the grid
-                        response.slugMediaIds.forEach(id => {
-                            let attachment = wp.media.attachment(id);
-                            wp.media.frame.content.get().collection.add(attachment);
-                        });
-
-                    }
-                }).catch(error => {
-                    console.error(error);
-                });
+            filterGrid(data);
         }
 
+    }
+
+    function filterGrid(data) {
+
+        adminAjaxHandler({ ...ajaxDataHandler(), ...mediaGridDataHandler(data) }, ajaxURL())
+            .then(response => {
+                if (response.slugMediaIds) {
+
+                    // Clear the current media grid
+                    wp.media.frame.content.get().collection.reset();
+
+                    // Add media items from the response to the grid
+                    response.slugMediaIds.forEach(id => {
+                        let attachment = wp.media.attachment(id);
+                        wp.media.frame.content.get().collection.add(attachment);
+                    });
+
+                }
+            }).catch(error => {
+                console.error(error);
+            });
     }
 
     function filterTableGrid(data) {
@@ -409,8 +434,17 @@ jQuery(document).ready(function ($) {
 
     function mediaGridDataHandler(nodeData) {
 
+        let nodeSlug;
+
+        if (nodeData === -1) {
+            nodeSlug = -1;
+        }
+        else {
+            nodeSlug = nodeData.node.original.slug;
+        }
+
         return {
-            nodeSlug: nodeData.node.original.slug,
+            nodeSlug: nodeSlug,
             nodeAction: 'mediaGridViewNodeClick'
         }
 
