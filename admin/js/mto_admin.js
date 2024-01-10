@@ -2,6 +2,29 @@ jQuery(document).ready(function ($) {
     // Check if the body has the 'upload-php' class
     if (!$('body').hasClass('upload-php')) return;
 
+    let mediaView, dragTarget, dropRemovalType, dropAttributeValue, dropAttributePrefix;
+
+    if (document.getElementById('the-list')) {
+        mediaView = 'list';
+        dragTarget = '#the-list tr';
+        dropRemovalType = 'table';
+        dropAttributeValue = 'id';
+        dropAttributePrefix = '';
+    }
+
+    else if (document.getElementById('wp-media-grid')) {
+        mediaView = 'grid';
+        dragTarget = '.attachment';
+        dropRemovalType = 'gallery';
+        dropAttributeValue = 'data-id';
+        dropAttributePrefix = 'post-';
+    }
+
+    else {
+        console.log("We cannot find the media library on the page");
+        return;
+    }
+
     let treeAnchorID = "mto-admin-tree";
     let searchClass = 'mto-jstree-search';
     let treeFeature = setupTreeFeature(mtoData.categoriesJson, treeAnchorID, searchClass);
@@ -11,41 +34,17 @@ jQuery(document).ready(function ($) {
 
     let baseTree = $(treeFeature).find("#" + treeAnchorID);
 
-    let mediaTableView = 'the-list';
-    let mediaTableDragTarget = '#the-list tr';
-    let mediaGalleryView = 'wp-media-grid';
-    let mediaGalleryDragTarget = ".attachment";
-
-    if (document.getElementById(mediaTableView)) {
-        setupTreeNodeSelectSubmission(baseTree, 'list');
-        setupDragFeature(mediaTableDragTarget);
-        setupDropFeature(baseTree, 'id');
-        setupRemovalEvents("table");
-    }
-
-    else if (document.getElementById(mediaGalleryView)) {
-        setupTreeNodeSelectSubmission(baseTree, 'grid');
-        setupDragFeature(mediaGalleryDragTarget);
-        setupDropFeature(baseTree, 'data-id', 'post-');
-        setupRemovalEvents("gallery");
-    }
-
-    else {
-        console.log("We cannot find the media library on the page");
-        return;
-    }
-
+    setupTreeNodeSelectSubmission(baseTree, mediaView);
+    setupDragFeature(dragTarget);
+    setupDropFeature(baseTree, dropAttributeValue, dropAttributePrefix);
+    setupRemovalEvents(dropRemovalType);
     selectLastVisit(baseTree, lastVisit);
     setupResizeFeature($('#wpbody'), treeFeature);
-
-    const ajaxurl = mtoData.ajaxURL;
-
-    const ajaxSecurityData = {
-        action: 'admin_jstree_ajax_handler',
-        nonce: mtoData.ajaxNonce
-    }
-
     setupTreeNodeEvents(baseTree);
+
+    function ajaxURL() {
+        return mtoData.ajaxURL;
+    }
 
     function setupTreeFeature(treeData, treeAnchorID, searchClass) {
 
@@ -137,10 +136,27 @@ jQuery(document).ready(function ($) {
     }
 
     function filterMediaGrid(data) {
-        /* Future work*/
+        if (data.event && data.event.which === 1) {
+            adminAjaxHandler({ ...ajaxDataHandler(), ...mediaGridDataHandler(data) }, ajaxURL())
+                .then(response => {
+                    if (response.slugMediaIds) {
+
+                        // Clear the current media grid
+                        wp.media.frame.content.get().collection.reset();
+
+                        // Add media items from the response to the grid
+                        response.slugMediaIds.forEach(id => {
+                            let attachment = wp.media.attachment(id);
+                            wp.media.frame.content.get().collection.add(attachment);
+                        });
+
+                    }
+                }).catch(error => {
+                    console.error(error);
+                });
+        }
+
     }
-
-
 
     function filterTableGrid(data) {
 
@@ -243,7 +259,7 @@ jQuery(document).ready(function ($) {
                                 let dropItemId = $(this).parent().attr('id');
                                 let dragItemId = ui.draggable.attr(attributeValue)
                                 let formattedDragItemID = attributePrefix + dragItemId;
-                                adminAjaxHandler({ ...ajaxSecurityData, ...dragAndDropNodeDataHandler(dropItemId, formattedDragItemID) }, ajaxurl)
+                                adminAjaxHandler({ ...ajaxDataHandler(), ...dragAndDropNodeDataHandler(dropItemId, formattedDragItemID) }, ajaxURL())
                                     .then(response => {
                                         updateTreeCounts(dropItemId, response.previousCategory);
 
@@ -304,10 +320,10 @@ jQuery(document).ready(function ($) {
     function setupTreeNodeEvents(tree) {
 
         tree.on('delete_node.jstree', function (e, data) {
-            adminAjaxHandler({ ...ajaxSecurityData, ...deleteNodeDataHandler(data) }, ajaxurl);
+            adminAjaxHandler({ ...ajaxDataHandler(), ...deleteNodeDataHandler(data) }, ajaxURL());
         })
             .on('create_node.jstree', function (e, data) {
-                adminAjaxHandler({ ...ajaxSecurityData, ...createNodeDataHandler(data) }, ajaxurl)
+                adminAjaxHandler({ ...ajaxDataHandler(), ...createNodeDataHandler(data) }, ajaxURL())
                     .then(response => {
                         tree.jstree(true).set_id(data.node, response.systemGeneratedNodeID);
                     }).catch(error => {
@@ -315,7 +331,7 @@ jQuery(document).ready(function ($) {
                     });
             })
             .on('rename_node.jstree', function (e, data) {
-                adminAjaxHandler({ ...ajaxSecurityData, ...renameNodeDataHandler(data) }, ajaxurl)
+                adminAjaxHandler({ ...ajaxDataHandler(), ...renameNodeDataHandler(data) }, ajaxURL())
                     .then(response => {
                         data.node.original.slug = response.systemGeneratedSlug;
 
@@ -324,7 +340,7 @@ jQuery(document).ready(function ($) {
                     });
             })
             .on('move_node.jstree', function (e, data) {
-                adminAjaxHandler({ ...ajaxSecurityData, ...moveNodeDataHandler(data) }, ajaxurl);
+                adminAjaxHandler({ ...ajaxDataHandler(), ...moveNodeDataHandler(data) }, ajaxURL());
             });
 
     }
@@ -352,7 +368,7 @@ jQuery(document).ready(function ($) {
             parentID: nodeData.parent,
             positionInHiearchy: nodeData.position,
             nodeAction: 'create'
-        }
+        };
     };
 
     function deleteNodeDataHandler(nodeData) {
@@ -360,7 +376,7 @@ jQuery(document).ready(function ($) {
             nodeID: nodeData.node.id,
             parentID: nodeData.parent,
             nodeAction: 'delete'
-        }
+        };
     }
 
     function renameNodeDataHandler(nodeData) {
@@ -369,7 +385,7 @@ jQuery(document).ready(function ($) {
             newName: nodeData.text,
             previousName: nodeData.old,
             nodeAction: 'rename'
-        }
+        };
     }
 
     function dragAndDropNodeDataHandler(nodeID, mediaID) {
@@ -377,7 +393,7 @@ jQuery(document).ready(function ($) {
             nodeID: nodeID,
             mediaID: mediaID,
             nodeAction: "dragAndDrop"
-        }
+        };
 
     }
 
@@ -387,8 +403,26 @@ jQuery(document).ready(function ($) {
             parentID: nodeData.parent,
             positionInHiearchy: nodeData.position,
             nodeAction: 'moveNode'
-        }
+        };
     }
+
+
+    function mediaGridDataHandler(nodeData) {
+
+        return {
+            nodeSlug: nodeData.node.original.slug,
+            nodeAction: 'mediaGridViewNodeClick'
+        }
+
+    }
+
+    function ajaxDataHandler() {
+        return {
+            action: 'admin_jstree_ajax_handler',
+            nonce: mtoData.ajaxNonce
+        };
+    }
+
     function adminAjaxHandler(ajaxData, ajaxURL) {
 
         return new Promise((resolve, reject) => {
@@ -404,6 +438,8 @@ jQuery(document).ready(function ($) {
                 }
             });
         });
+
+
     }
 
 });

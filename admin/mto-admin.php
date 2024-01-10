@@ -28,7 +28,6 @@ function mto_setup_admin_media($hook)
     wp_enqueue_script('jquery-ui-draggable', '', array('jquery'), '', true);
     wp_enqueue_script('jquery-ui-droppable', '', array('jquery'), '', true);
 
-
     wp_enqueue_style('jstree-style', $jstree_path . 'css/mto-jstree.min.css');
     wp_enqueue_style('mto-admin-style', plugin_dir_url(__FILE__) . 'css/mto-admin.css');
 
@@ -56,7 +55,7 @@ function mto_custom_taxonomy_slug()
 }
 
 // Recursive function to fetch and build an array of categories and subcategories to build admin folders
-function mto_get_categories_for_folders($parent = 0, $categoryCounts = [])
+function mto_get_categories_for_folders($parent = 0, $categoryCounts = array())
 {
     $taxonomy = mto_custom_taxonomy_slug();
     $args = array(
@@ -66,7 +65,7 @@ function mto_get_categories_for_folders($parent = 0, $categoryCounts = [])
     );
 
     $terms = get_terms($args);
-    $categories = [];
+    $categories = array();
 
 
     // Check if any term exists
@@ -79,13 +78,13 @@ function mto_get_categories_for_folders($parent = 0, $categoryCounts = [])
                 $categoryCount = 0;
             }
 
-            $category = [
+            $category = array(
                 'id' => "mto-" . $term->term_id,
                 'text' => $term->name,
-                'children' => [],
+                'children' => array(),
                 'slug' => $term->slug,
-                'a_attr' => ['data-count' => $categoryCount]
-            ];
+                'a_attr' => array('data-count' => $categoryCount)
+            );
 
             // If the term has children, get them
             if (get_term_children($term->term_id, mto_custom_taxonomy_slug())) {
@@ -152,7 +151,7 @@ function mto_admin_jstree_ajax_handler()
         wp_die();
     }
 
-    $response = [];
+    $response = array();
     $nodeAction = $_POST['nodeAction'];
     if ($nodeAction === "rename") {
         $response = mto_rename_category(
@@ -182,6 +181,10 @@ function mto_admin_jstree_ajax_handler()
             $_POST['positionInHiearchy']
         );
 
+    } elseif ($nodeAction === "mediaGridViewNodeClick") {
+        $response = mto_media_grid_view_click(
+            $_POST['nodeSlug']
+        );
     }
     wp_send_json($response);
 }
@@ -194,10 +197,10 @@ function mto_rename_category($nodeID, $newName)
     $newName = sanitize_text_field($newName);
     $slug = sanitize_title($newName);
 
-    $args = [
+    $args = array(
         "name" => $newName,
         "slug" => $slug
-    ];
+    );
 
     $term = wp_update_term(
         $nodeID,
@@ -208,10 +211,10 @@ function mto_rename_category($nodeID, $newName)
     if (is_wp_error($term)) {
         return $term->get_error_message();
     } else {
-        return [
+        return array(
             "systemGeneratedNodeID" => "mto-" . $term['term_id'],
             "systemGeneratedSlug" => $slug
-        ];
+        );
     }
 
     return $response;
@@ -224,9 +227,9 @@ function mto_delete_category($nodeID)
     if (is_wp_error($status)) {
         return $status->get_error_message();
     } else {
-        return [
+        return array(
             "status" => $status,
-        ];
+        );
     }
 }
 
@@ -239,7 +242,7 @@ function mto_create_category($nodeID, $parentID, $positionInHiearchy)
 
     $termName = "New Folder " . $nodeID;
 
-    $args = [];
+    $args = array();
 
     if ($parentID) {
         $args = ['parent' => $parentID];
@@ -253,10 +256,10 @@ function mto_create_category($nodeID, $parentID, $positionInHiearchy)
     if (is_wp_error($term)) {
         return $term->get_error_message();
     } else {
-        return [
+        return array(
             "systemGeneratedNodeID" => "mto-" . $term['term_id'],
             "originalNodeID" => $nodeID
-        ];
+        );
     }
 }
 
@@ -265,7 +268,7 @@ function mto_move_category($nodeID, $parentID, $positionInHiearchy)
     $nodeID = (int) trim($nodeID, 'mto-');
     $parentID = (int) trim($parentID, 'mto-');
     $positionInHiearchy = (int) $positionInHiearchy;
-    $args = ['parent' => $parentID];
+    $args = array('parent' => $parentID);
     $status = wp_update_term(
         $nodeID,
         mto_custom_taxonomy_slug(),
@@ -274,9 +277,9 @@ function mto_move_category($nodeID, $parentID, $positionInHiearchy)
     if (is_wp_error($status)) {
         return $status->get_error_message();
     } else {
-        return [
+        return array(
             "status" => "success",
-        ];
+        );
     }
 
 }
@@ -296,15 +299,47 @@ function mto_assign_media_to_category($nodeID, $mediaID)
     if (is_wp_error($status)) {
         return $status->get_error_message();
     } else {
-
-
         return [
             "status" => "success",
             "previousCategory" => $previousCategory
         ];
     }
+}
 
+function mto_media_grid_view_click($nodeSlug)
+{
+    $term_slug = sanitize_text_field($nodeSlug);
 
+    $tax_query = array(
+        'taxonomy' => mto_custom_taxonomy_slug(),
+        'field' => 'slug',
+        'terms' => $term_slug,
+        'include_children' => false
+    );
+
+    $args = array(
+        'posts_per_page' => -1, // Get all posts
+        'post_type' => 'attachment', // Replace with your custom post type
+        'tax_query' => array(
+            $tax_query
+        ),
+    );
+
+    $posts = get_posts($args);
+
+    if (is_wp_error($posts)) {
+        return $posts->get_error_message();
+    } else {
+        $post_ids = array();
+        foreach ($posts as $post) {
+            $post_ids[] = $post->ID;
+        }
+        return array(
+            "status" => "success",
+            "slugMediaIds" => $post_ids,
+            "slugLoop" => $term_slug
+        );
+    }
 }
 
 function mto_filter_media_library_by_category($query)
@@ -320,13 +355,13 @@ function mto_filter_media_library_by_category($query)
         // Check if taxonomy and term are present in the URL
         if (isset($_GET['taxonomy']) && isset($_GET['term'])) {
 
-            if ($_GET['taxonomy'] === 'mto_category') {
+            if ($_GET['taxonomy'] === mto_custom_taxonomy_slug()) {
                 // Get the term slug from the URL
                 if (isset($_GET['nodeId']) && (int) $_GET['nodeId'] === -1) {
 
                     $tax_query = array(
                         array(
-                            'taxonomy' => 'mto_category',
+                            'taxonomy' => mto_custom_taxonomy_slug(),
                             'operator' => 'NOT EXISTS'
                         ),
                     );
@@ -338,7 +373,7 @@ function mto_filter_media_library_by_category($query)
                     // Set the taxonomy query for the custom category
                     $tax_query = array(
                         array(
-                            'taxonomy' => 'mto_category',
+                            'taxonomy' => mto_custom_taxonomy_slug(),
                             'field' => 'slug',
                             'terms' => $term_slug,
                             'include_children' => false
