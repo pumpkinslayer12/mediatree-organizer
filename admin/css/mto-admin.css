@@ -38,7 +38,11 @@ body.wp-admin.upload-php #wpfooter {
 #resizable-wrapper {
     min-width: 250px;
     margin-right: 10px;
+}
 
+/* Addresses sizing issues with resize bar */
+#wpbody-content {
+    padding-bottom: 0px;
 }
 
 /* Your tree wrapper */

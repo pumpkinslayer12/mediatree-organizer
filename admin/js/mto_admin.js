@@ -226,9 +226,19 @@ jQuery(document).ready(function ($) {
             }
         });
 
+
         $(window).on('load resize', function () {
-            let bodyHeight = resizeWrapper.height();
-            $('#' + resizeWrapperID).height(bodyHeight);
+            let interactiveAreaHeight = $('#wpbody-content .wrap').height() + 40;
+            let adminMenuHeight = $('#adminmenuback').height();
+            let usedHeight;
+
+            if (interactiveAreaHeight > adminMenuHeight) {
+                usedHeight = interactiveAreaHeight;
+            }
+            else {
+                usedHeight = adminMenuHeight;
+            }
+            $('#' + resizeWrapperID).height(usedHeight);
         });
     }
 
