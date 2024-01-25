@@ -13,11 +13,25 @@ if (!defined('WPINC')) {
     die;
 }
 
-function mto_build_directory_structure($parent = 0)
+/*
+function mto_build_directory_structure($categoryReference = 0)
 {
+
+    $referenceCategoryID = '';
+    $taxonomy = 'mto_category';
+
+    if (!is_numeric($categoryReference)) {
+
+        $referenceTermByName = get_term_by('name', sanitize_text_field($categoryReference), $taxonomy);
+        if ($referenceTermByName) {
+            $referenceCategoryID = $referenceTermByName->term_id;
+        }
+    } else {
+        $referenceCategoryID = (int) $categoryReference;
+    }
     $args = array(
         'taxonomy' => 'mto_category',
-        'parent' => $parent,
+        'parent' => $referenceCategoryID,
         'hide_empty' => false, // Change to 'true' if you want to hide empty categories
     );
 
@@ -84,7 +98,98 @@ function mto_build_directory_structure($parent = 0)
 
     return $categories;
 }
+*/
+function mto_build_directory_structure($categoryReference = 0)
+{
+    $taxonomy = 'mto_category';
+    $referenceCategoryID = '';
 
+    // Determine the reference category ID
+    if (!is_numeric($categoryReference)) {
+        $referenceTermByName = get_term_by('name', sanitize_text_field($categoryReference), $taxonomy);
+        if ($referenceTermByName) {
+            $referenceCategoryID = $referenceTermByName->term_id;
+        }
+    } else {
+        $referenceCategoryID = (int) $categoryReference;
+    }
+
+    // Fetch and add media items for the given category
+    $categories = add_media_items_to_category($referenceCategoryID, $taxonomy);
+
+    // Build structure for child categories
+    $child_categories = build_structure_and_add_media($referenceCategoryID, $taxonomy);
+    if (!empty($child_categories)) {
+        $categories = array_merge($categories, $child_categories);
+    }
+
+    return $categories;
+}
+
+// Separate function to fetch and add media items
+function add_media_items_to_category($term_id, $taxonomy) {
+    $media_items = [];
+    $attachments = get_posts([
+        'post_type' => 'attachment',
+        'tax_query' => [
+            [
+                'taxonomy' => $taxonomy,
+                'field' => 'term_id',
+                'terms' => $term_id,
+                'include_children' => false
+            ],
+        ],
+        'numberposts' => -1,
+    ]);
+
+    foreach ($attachments as $attachment) {
+        $media_items[] = [
+            'id' => $attachment->ID,
+            'text' => $attachment->post_title,
+            'type' => mto_get_icon_class_by_mime_type($attachment->post_mime_type),
+            'icon' => mto_get_icon_class_by_mime_type($attachment->post_mime_type),
+            'a_attr' => [
+                'href' => wp_get_attachment_url($attachment->ID),
+                'data-last-modified' => "Last Modified: " . get_post_modified_time('F j, Y', false, $attachment->ID),
+                'class' => 'jstree-media-item'
+            ]
+        ];
+    }
+
+    return $media_items;
+}
+
+// Separate function to recursively build structure and add media
+function build_structure_and_add_media($term_id, $taxonomy) {
+    $structure = [];
+
+    $args = array(
+        'taxonomy' => $taxonomy,
+        'parent' => $term_id,
+        'hide_empty' => false,
+    );
+
+    $terms = get_terms($args);
+
+    foreach ($terms as $term) {
+        $category = [
+            'id' => $term->term_id,
+            'text' => $term->name,
+            'type' => 'default',
+            'icon' => 'folder-icon',
+            'children' => add_media_items_to_category($term->term_id, $taxonomy)
+        ];
+
+        $child_categories = build_structure_and_add_media($term->term_id, $taxonomy);
+        if (!empty($child_categories)) {
+            $category['children'] = array_merge($category['children'], $child_categories);
+        }
+
+        $structure[] = $category;
+    }
+
+    return $structure;
+}
 
 function mto_get_icon_class_by_mime_type($mime_type)
 {
@@ -101,8 +206,19 @@ function mto_get_icon_class_by_mime_type($mime_type)
 
 // Shortcode to display categories
 
-function mto_display_directory_shortcode()
+function mto_display_directory_shortcode($atts)
 {
+
+    // Define default values for the attributes
+    $atts = shortcode_atts(
+        array(
+            'category_name' => 0, // Default value if no category name is provided
+        ),
+        $atts
+    );
+
+    // Extract the category_name attribute
+    $category_name = $atts['category_name'];
     $jstree_path = plugin_dir_url(__FILE__) . '../includes/';
 
     wp_enqueue_script('jstree', $jstree_path . 'js/mto-jstree.min.js', array('jquery'), '3.3.8', true);
@@ -115,7 +231,7 @@ function mto_display_directory_shortcode()
         'mto-public-js',
         'mtoData',
         array(
-            'directory_structure' => mto_build_directory_structure(),
+            'directory_structure' => mto_build_directory_structure($category_name),
         )
     );
 
