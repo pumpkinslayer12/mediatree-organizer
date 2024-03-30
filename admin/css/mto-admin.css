@@ -4,6 +4,7 @@
 
 #wpbody-content {
     flex-grow: 1;
+    padding-bottom: 0px;
 }
 
 body.wp-admin.upload-php #wpbody-content .wp-header-end,
@@ -22,30 +23,22 @@ body.wp-admin.upload-php #wpfooter {
     padding: 10px;
 }
 
-
 .folder-icon.jstree-themeicon {
     background-image: url('../../assets/folder.png');
     background-size: contain;
 }
 
-
 #wpbody {
     display: flex;
     height: 100%;
-    /* Or adjust as needed */
 }
 
 #resizable-wrapper {
-    min-width: 250px;
+    width: 275px;
     margin-right: 10px;
+    margin-left: 10px;
 }
 
-/* Addresses sizing issues with resize bar */
-#wpbody-content {
-    padding-bottom: 0px;
-}
-
-/* Your tree wrapper */
 .mto-tree-wrapper {
     position: sticky;
     top: 50px;
@@ -54,19 +47,29 @@ body.wp-admin.upload-php #wpfooter {
     overflow: hidden;
 }
 
-
-/* The Resizable handler */
-
 #resizable-wrapper .ui-resizable-e {
     position: absolute;
     top: 0;
     right: 0;
-    width: 15px;
+    width: 8px;
     height: 100%;
     cursor: ew-resize;
-    background: grey;
+    background-color: #e0e0e0;
+    border-radius: 4px;
+    box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.2);
 }
 
+#resizable-wrapper .ui-resizable-e::before {
+    content: "";
+    position: fixed;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 10px;
+    margin-left: 4px;
+    height: 40px;
+    background-color: #bdbdbd;
+    border-radius: 2px;
+}
 
 .vakata-context,
 .vakata-context ul {
@@ -94,9 +97,7 @@ body.wp-admin.upload-php #wpfooter {
     width: auto;
 }
 
-
 .jstree-anchor::after {
-
     content: attr(data-count);
     background-color: #fff;
     border-radius: 2px;
@@ -104,5 +105,8 @@ body.wp-admin.upload-php #wpfooter {
     padding: 6px;
     margin-left: 5px;
     pointer-events: none;
+}
 
+.uncategorized-button {
+    white-space: nowrap;
 }

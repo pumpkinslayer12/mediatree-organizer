@@ -214,7 +214,7 @@ jQuery(document).ready(function ($) {
 
         resizeWrapper.resizable({
             handles: 'e',
-            minWidth: 250,
+            minWidth: 0,
             maxWidth: 475,
 
             resize: function (event, ui) {
