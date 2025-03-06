@@ -384,13 +384,13 @@ jQuery(document).ready(function ($) {
 
         // Decrement the count for the previous category
         if (previousCategoryNodeID) {
-            let previousCategoryNode = $('#' + previousCategoryNodeID + ' a.jstree-anchor');
+            let previousCategoryNode = $('#' + previousCategoryNodeID + ' > a.jstree-anchor');
             let previousCount = parseInt(previousCategoryNode.attr('data-count')) || 0;
             previousCategoryNode.attr('data-count', Math.max(0, previousCount - 1)); // Ensure count doesn't go below 0
         }
 
         // Increment the count for the current category
-        activationNode = $('#' + currentCategoryNodeID + ' a.jstree-anchor');
+        let activationNode = $('#' + currentCategoryNodeID + ' > a.jstree-anchor');
         let currentCount = parseInt(activationNode.attr('data-count')) || 0;
         activationNode.attr('data-count', currentCount + 1);
 
