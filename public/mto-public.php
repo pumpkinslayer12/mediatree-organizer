@@ -59,12 +59,12 @@ function add_media_items_to_category($term_id, $taxonomy) {
     foreach ($attachments as $attachment) {
         $media_items[] = [
             'id' => $attachment->ID,
-            'text' => $attachment->post_title,
-            'type' => mto_get_icon_class_by_mime_type($attachment->post_mime_type),
-            'icon' => mto_get_icon_class_by_mime_type($attachment->post_mime_type),
+            'text' => esc_html($attachment->post_title),
+            'type' => esc_attr(mto_get_icon_class_by_mime_type($attachment->post_mime_type)),
+            'icon' => esc_attr(mto_get_icon_class_by_mime_type($attachment->post_mime_type)),
             'a_attr' => [
-                'href' => wp_get_attachment_url($attachment->ID),
-                'data-last-modified' => "Last Modified: " . get_post_modified_time('F j, Y', false, $attachment->ID),
+                'href' => esc_url(wp_get_attachment_url($attachment->ID)),
+                'data-last-modified' => "Last Modified: " . esc_attr(get_post_modified_time('F j, Y', false, $attachment->ID)),
                 'class' => 'jstree-media-item'
             ]
         ];
@@ -88,7 +88,7 @@ function build_structure_and_add_media($term_id, $taxonomy) {
     foreach ($terms as $term) {
         $category = [
             'id' => $term->term_id,
-            'text' => $term->name,
+            'text' => esc_html($term->name),
             'type' => 'default',
             'icon' => 'folder-icon',
             'children' => add_media_items_to_category($term->term_id, $taxonomy)

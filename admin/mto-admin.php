@@ -144,47 +144,48 @@ function mto_admin_jstree_ajax_handler()
 {
     if (
         !isset($_POST['nonce']) ||
-        !wp_verify_nonce($_POST['nonce'], 'mto_ajax_nonce') &&
+        !wp_verify_nonce($_POST['nonce'], 'mto_ajax_nonce') ||
         !current_user_can('manage_categories')
     ) {
-        echo "Nonce verification failed.";
+        echo "Security verification failed.";
         wp_die();
     }
 
     $response = array();
-    $nodeAction = $_POST['nodeAction'];
-    if ($nodeAction === "rename") {
+    $nodeAction = isset($_POST['nodeAction']) ? sanitize_text_field($_POST['nodeAction']) : '';
+    
+    if ($nodeAction === "rename" && isset($_POST['nodeID']) && isset($_POST['newName'])) {
         $response = mto_rename_category(
-            $_POST['nodeID'],
-            $_POST['newName']
+            sanitize_text_field($_POST['nodeID']),
+            sanitize_text_field($_POST['newName'])
         );
-    } elseif ($nodeAction === "delete") {
+    } elseif ($nodeAction === "delete" && isset($_POST['nodeID'])) {
         $response = mto_delete_category(
-            $_POST['nodeID'],
+            sanitize_text_field($_POST['nodeID'])
         );
-    } elseif ($nodeAction === "create") {
+    } elseif ($nodeAction === "create" && isset($_POST['nodeID']) && isset($_POST['parentID']) && isset($_POST['positionInHiearchy'])) {
         $response = mto_create_category(
-            $_POST['nodeID'],
-            $_POST['parentID'],
-            $_POST['positionInHiearchy']
+            sanitize_text_field($_POST['nodeID']),
+            sanitize_text_field($_POST['parentID']),
+            absint($_POST['positionInHiearchy'])
         );
-    } elseif ($nodeAction === "dragAndDrop") {
+    } elseif ($nodeAction === "dragAndDrop" && isset($_POST['nodeID']) && isset($_POST['mediaID'])) {
         $response = mto_assign_media_to_category(
-            $_POST['nodeID'],
-            $_POST['mediaID'],
+            sanitize_text_field($_POST['nodeID']),
+            sanitize_text_field($_POST['mediaID'])
         );
-
-    } elseif ($nodeAction === "moveNode") {
+    } elseif ($nodeAction === "moveNode" && isset($_POST['nodeID']) && isset($_POST['parentID']) && isset($_POST['positionInHiearchy'])) {
         $response = mto_move_category(
-            $_POST['nodeID'],
-            $_POST['parentID'],
-            $_POST['positionInHiearchy']
+            sanitize_text_field($_POST['nodeID']),
+            sanitize_text_field($_POST['parentID']),
+            absint($_POST['positionInHiearchy'])
         );
-
-    } elseif ($nodeAction === "mediaGridViewNodeClick") {
+    } elseif ($nodeAction === "mediaGridViewNodeClick" && isset($_POST['nodeSlug'])) {
         $response = mto_media_grid_view_click(
-            $_POST['nodeSlug']
+            sanitize_text_field($_POST['nodeSlug'])
         );
+    } else {
+        $response = array('status' => 'error', 'message' => 'Invalid action or missing parameters');
     }
     wp_send_json($response);
 }
@@ -193,6 +194,11 @@ add_action('wp_ajax_admin_jstree_ajax_handler', 'mto_admin_jstree_ajax_handler')
 
 function mto_rename_category($nodeID, $newName)
 {
+    // Check if user has permission to manage categories
+    if (!current_user_can('manage_categories')) {
+        return array('status' => 'error', 'message' => 'Permission denied');
+    }
+    
     $nodeID = (int) trim($nodeID, 'mto-');
     $newName = sanitize_text_field($newName);
     $slug = sanitize_title($newName);
@@ -222,6 +228,11 @@ function mto_rename_category($nodeID, $newName)
 
 function mto_delete_category($nodeID)
 {
+    // Check if user has permission to manage categories
+    if (!current_user_can('manage_categories')) {
+        return array('status' => 'error', 'message' => 'Permission denied');
+    }
+    
     $nodeID = (int) trim($nodeID, 'mto-');
     $status = wp_delete_term($nodeID, mto_custom_taxonomy_slug());
     if (is_wp_error($status)) {
@@ -235,6 +246,11 @@ function mto_delete_category($nodeID)
 
 function mto_create_category($nodeID, $parentID, $positionInHiearchy)
 {
+    // Check if user has permission to manage categories
+    if (!current_user_can('manage_categories')) {
+        return array('status' => 'error', 'message' => 'Permission denied');
+    }
+    
     // This will always be a random jstree id.
     $nodeID = sanitize_text_field($nodeID);
     $parentID = (int) trim($parentID, 'mto-');
@@ -265,6 +281,11 @@ function mto_create_category($nodeID, $parentID, $positionInHiearchy)
 
 function mto_move_category($nodeID, $parentID, $positionInHiearchy)
 {
+    // Check if user has permission to manage categories
+    if (!current_user_can('manage_categories')) {
+        return array('status' => 'error', 'message' => 'Permission denied');
+    }
+    
     $nodeID = (int) trim($nodeID, 'mto-');
     $parentID = (int) trim($parentID, 'mto-');
     $positionInHiearchy = (int) $positionInHiearchy;
@@ -285,6 +306,11 @@ function mto_move_category($nodeID, $parentID, $positionInHiearchy)
 }
 function mto_assign_media_to_category($nodeID, $mediaID)
 {
+    // Check if user has permission to upload/edit media
+    if (!current_user_can('upload_files')) {
+        return array('status' => 'error', 'message' => 'Permission denied');
+    }
+    
     $nodeID = (int) trim($nodeID, 'mto-');
     $mediaID = (int) trim($mediaID, 'post-');
 
@@ -308,6 +334,11 @@ function mto_assign_media_to_category($nodeID, $mediaID)
 
 function mto_media_grid_view_click($nodeSlug)
 {
+    // Check if user has permission to view media library
+    if (!current_user_can('upload_files')) {
+        return array('status' => 'error', 'message' => 'Permission denied');
+    }
+    
     $term_slug = sanitize_text_field($nodeSlug);
 
     $tax_query = array('taxonomy' => mto_custom_taxonomy_slug());
@@ -352,42 +383,39 @@ function mto_filter_media_library_by_category($query)
         $query->is_main_query() &&
         $query->get('post_type') == 'attachment'
     ) {
-        // Check if the query is for the 'attachment' post type (media items)
-
         // Check if taxonomy and term are present in the URL
         if (isset($_GET['taxonomy']) && isset($_GET['term'])) {
+            $taxonomy = sanitize_text_field($_GET['taxonomy']);
 
-            if ($_GET['taxonomy'] === mto_custom_taxonomy_slug()) {
+            if ($taxonomy === mto_custom_taxonomy_slug()) {
                 // Get the term slug from the URL
-                if (isset($_GET['nodeId']) && (int) $_GET['nodeId'] === -1) {
+                if (isset($_GET['nodeId'])) {
+                    $node_id = absint($_GET['nodeId']);
+                    
+                    if ($node_id === -1) {
+                        $tax_query = array(
+                            array(
+                                'taxonomy' => mto_custom_taxonomy_slug(),
+                                'operator' => 'NOT EXISTS'
+                            ),
+                        );
+                    } else {
+                        $term_slug = sanitize_text_field($_GET['term']);
 
-                    $tax_query = array(
-                        array(
-                            'taxonomy' => mto_custom_taxonomy_slug(),
-                            'operator' => 'NOT EXISTS'
-                        ),
-                    );
-
-
-                } else {
-                    $term_slug = sanitize_text_field($_GET['term']);
-
-                    // Set the taxonomy query for the custom category
-                    $tax_query = array(
-                        array(
-                            'taxonomy' => mto_custom_taxonomy_slug(),
-                            'field' => 'slug',
-                            'terms' => $term_slug,
-                            'include_children' => false
-                        ),
-                    );
-
-                    // Modify the query to include media items belonging to the specified category
-
+                        // Set the taxonomy query for the custom category
+                        $tax_query = array(
+                            array(
+                                'taxonomy' => mto_custom_taxonomy_slug(),
+                                'field' => 'slug',
+                                'terms' => $term_slug,
+                                'include_children' => false
+                            ),
+                        );
+                    }
+                    
+                    $query->set('tax_query', $tax_query);
                 }
-                $query->set('tax_query', $tax_query);
             }
-
         }
     }
 }
