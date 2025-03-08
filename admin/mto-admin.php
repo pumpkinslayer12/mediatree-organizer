@@ -153,7 +153,7 @@ function mto_admin_jstree_ajax_handler()
 
     $response = array();
     $nodeAction = isset($_POST['nodeAction']) ? sanitize_text_field($_POST['nodeAction']) : '';
-    
+
     if ($nodeAction === "rename" && isset($_POST['nodeID']) && isset($_POST['newName'])) {
         $response = mto_rename_category(
             sanitize_text_field($_POST['nodeID']),
@@ -198,20 +198,28 @@ function mto_rename_category($nodeID, $newName)
     if (!current_user_can('manage_categories')) {
         return array('status' => 'error', 'message' => 'Permission denied');
     }
-    
+
     $nodeID = (int) trim($nodeID, 'mto-');
     $newName = sanitize_text_field($newName);
-    $slug = sanitize_title($newName);
+    $rawSlug = sanitize_title($newName);
 
-    $args = array(
+    // Check if term exists, if it does we will need unique slug.
+    $duplicateTerm = get_term($nodeID, mto_custom_taxonomy_slug());
+
+    $updateTermArgs = array(
         "name" => $newName,
-        "slug" => $slug
     );
+
+    if (is_wp_error($duplicateTerm)) {
+        $updateTermArgs['slug'] = $rawSlug;
+    } else {
+        $updateTermArgs['slug'] = wp_unique_term_slug($rawSlug, $duplicateTerm);
+    }
 
     $term = wp_update_term(
         $nodeID,
         mto_custom_taxonomy_slug(),
-        $args
+        $updateTermArgs
     );
 
     if (is_wp_error($term)) {
@@ -219,11 +227,9 @@ function mto_rename_category($nodeID, $newName)
     } else {
         return array(
             "systemGeneratedNodeID" => "mto-" . $term['term_id'],
-            "systemGeneratedSlug" => $slug
+            "systemGeneratedSlug" => $updateTermArgs['slug']
         );
     }
-
-    return $response;
 }
 
 function mto_delete_category($nodeID)
@@ -232,7 +238,7 @@ function mto_delete_category($nodeID)
     if (!current_user_can('manage_categories')) {
         return array('status' => 'error', 'message' => 'Permission denied');
     }
-    
+
     $nodeID = (int) trim($nodeID, 'mto-');
     $status = wp_delete_term($nodeID, mto_custom_taxonomy_slug());
     if (is_wp_error($status)) {
@@ -250,7 +256,7 @@ function mto_create_category($nodeID, $parentID, $positionInHiearchy)
     if (!current_user_can('manage_categories')) {
         return array('status' => 'error', 'message' => 'Permission denied');
     }
-    
+
     // This will always be a random jstree id.
     $nodeID = sanitize_text_field($nodeID);
     $parentID = (int) trim($parentID, 'mto-');
@@ -285,7 +291,7 @@ function mto_move_category($nodeID, $parentID, $positionInHiearchy)
     if (!current_user_can('manage_categories')) {
         return array('status' => 'error', 'message' => 'Permission denied');
     }
-    
+
     $nodeID = (int) trim($nodeID, 'mto-');
     $parentID = (int) trim($parentID, 'mto-');
     $positionInHiearchy = (int) $positionInHiearchy;
@@ -310,7 +316,7 @@ function mto_assign_media_to_category($nodeID, $mediaID)
     if (!current_user_can('upload_files')) {
         return array('status' => 'error', 'message' => 'Permission denied');
     }
-    
+
     $nodeID = (int) trim($nodeID, 'mto-');
     $mediaID = (int) trim($mediaID, 'post-');
 
@@ -338,7 +344,7 @@ function mto_media_grid_view_click($nodeSlug)
     if (!current_user_can('upload_files')) {
         return array('status' => 'error', 'message' => 'Permission denied');
     }
-    
+
     $term_slug = sanitize_text_field($nodeSlug);
 
     $tax_query = array('taxonomy' => mto_custom_taxonomy_slug());
@@ -391,7 +397,7 @@ function mto_filter_media_library_by_category($query)
                 // Get the term slug from the URL
                 if (isset($_GET['nodeId'])) {
                     $node_id = absint($_GET['nodeId']);
-                    
+
                     if ($node_id === -1) {
                         $tax_query = array(
                             array(
@@ -412,7 +418,7 @@ function mto_filter_media_library_by_category($query)
                             ),
                         );
                     }
-                    
+
                     $query->set('tax_query', $tax_query);
                 }
             }
