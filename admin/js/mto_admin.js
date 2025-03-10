@@ -104,7 +104,10 @@ jQuery(document).ready(function ($) {
             },
             "types": {
                 "default": {
-                    "icon": "folder-icon"
+                    "icon": "folder-icon",
+                    "a_attr": {
+                        "data-count": "0"
+                    }
                 },
                 "file": {
                     "icon": "file-icon"
